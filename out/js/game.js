@@ -44,7 +44,8 @@ const GameState = (() => {
     },
     inventory: {
       items: {},
-      sets: {}
+      sets: {},
+      rewards: {}
     },
     story: {
       chapter: 1,
@@ -180,230 +181,7 @@ const Haptics = {
   break() { if (GameState.get('settings.haptics') && navigator.vibrate) navigator.vibrate([12, 4, 8]); }
 };
 
-/* ── Placeholder Grid ───────────────────────────────────────── */
-const PlaceholderGrid = (() => {
-  const CELL_SIZE = 44; // px — meets 44×44 minimum tap target
-  const GAP = 2;
-
-  let gridSize = 8;
-  let cells = [];
-
-  // Very basic cell type distribution for placeholder display
-  const CELL_TYPES = ['soil', 'soil', 'soil', 'rock', 'rock', 'ore_vein'];
-
-  function randomType() {
-    return CELL_TYPES[Math.floor(Math.random() * CELL_TYPES.length)];
-  }
-
-  function init(layer) {
-    if (layer <= 5)       gridSize = 8;
-    else if (layer <= 15) gridSize = 12;
-    else if (layer <= 30) gridSize = 16;
-    else                  gridSize = 20;
-
-    cells = [];
-    for (let r = 0; r < gridSize; r++) {
-      cells[r] = [];
-      for (let c = 0; c < gridSize; c++) {
-        cells[r][c] = {
-          type: randomType(),
-          hp: 4,
-          maxHp: 4,
-          stage: 0,
-          broken: false,
-          hasItem: Math.random() < 0.1
-        };
-      }
-    }
-  }
-
-  function render() {
-    const canvas = document.getElementById('grid-canvas');
-    if (!canvas) return;
-    canvas.innerHTML = '';
-
-    const total = gridSize * (CELL_SIZE + GAP) - GAP;
-    canvas.style.width  = total + 'px';
-    canvas.style.height = total + 'px';
-
-    for (let r = 0; r < gridSize; r++) {
-      for (let c = 0; c < gridSize; c++) {
-        const cell = cells[r][c];
-        const el = document.createElement('div');
-        el.className = 'cell' + (cell.broken ? ' broken' : '') + (cell.hasItem ? ' has-item' : '');
-        el.dataset.type  = cell.type;
-        el.dataset.stage = cell.stage;
-        el.dataset.row   = r;
-        el.dataset.col   = c;
-        el.style.cssText = `
-          width: ${CELL_SIZE}px;
-          height: ${CELL_SIZE}px;
-          left: ${c * (CELL_SIZE + GAP)}px;
-          top:  ${r * (CELL_SIZE + GAP)}px;
-        `;
-
-        // Crack SVG overlay
-        el.innerHTML = `
-          <svg class="crack-svg" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <polyline points="22,0 18,12 26,16 14,28 20,44" fill="none" stroke="rgba(0,0,0,0.7)" stroke-width="1.2"/>
-            <polyline points="44,10 30,18 36,22 24,36" fill="none" stroke="rgba(0,0,0,0.5)" stroke-width="0.8"/>
-          </svg>`;
-
-        el.addEventListener('pointerdown', onCellPointerDown);
-        canvas.appendChild(el);
-      }
-    }
-
-    // Center and fit the grid in viewport
-    fitGrid();
-  }
-
-  function fitGrid() {
-    const viewport = document.getElementById('grid-viewport');
-    const canvas   = document.getElementById('grid-canvas');
-    if (!viewport || !canvas) return;
-
-    const vw = viewport.clientWidth;
-    const vh = viewport.clientHeight;
-    const total = gridSize * (CELL_SIZE + GAP) - GAP;
-
-    // Scale so grid fits with 16px padding on each side
-    const scale = Math.min((vw - 32) / total, (vh - 32) / total, 1);
-    canvas.style.transform = `translate(-50%, -50%) scale(${scale})`;
-  }
-
-  // ── Touch / pointer handling ─────────────────────────────────
-  const PAN_THRESHOLD = 8; // px — below this = tap, above = pan
-
-  let pointerState = null;
-  let panOffset  = { x: 0, y: 0 };
-  let panCurrent = { x: 0, y: 0 };
-  let currentScale = 1;
-
-  function onCellPointerDown(e) {
-    // Only handle primary pointer on the cell directly
-    e.stopPropagation();
-    const el = e.currentTarget;
-    const startX = e.clientX;
-    const startY = e.clientY;
-    let moved = false;
-
-    function onMove(ev) {
-      if (Math.abs(ev.clientX - startX) > PAN_THRESHOLD ||
-          Math.abs(ev.clientY - startY) > PAN_THRESHOLD) {
-        moved = true;
-        el.removeEventListener('pointermove', onMove);
-        el.removeEventListener('pointerup',   onUp);
-      }
-    }
-
-    function onUp() {
-      el.removeEventListener('pointermove', onMove);
-      el.removeEventListener('pointerup',   onUp);
-      if (!moved) strikeCell(+el.dataset.row, +el.dataset.col, el);
-    }
-
-    el.addEventListener('pointermove', onMove);
-    el.addEventListener('pointerup',   onUp);
-  }
-
-  function strikeCell(r, c, el) {
-    const cell = cells[r][c];
-    if (!cell || cell.broken) return;
-
-    Haptics.tap();
-    cell.hp = Math.max(0, cell.hp - 1);
-    cell.stage = 4 - Math.ceil((cell.hp / cell.maxHp) * 4);
-
-    el.dataset.stage = cell.stage;
-
-    // Ripple effect
-    const ripple = document.createElement('div');
-    ripple.className = 'tap-ripple';
-    ripple.style.left = '50%';
-    ripple.style.top  = '50%';
-    el.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 400);
-
-    if (cell.hp <= 0) {
-      cell.broken = true;
-      el.classList.add('broken');
-      el.classList.remove('has-item');
-      Haptics.break();
-      Bus.emit('cell:broken', { r, c, type: cell.type, hadItem: cell.hasItem });
-      checkLayerClear();
-    }
-
-    Bus.emit('cell:struck', { r, c });
-  }
-
-  function checkLayerClear() {
-    const allBroken = cells.every(row => row.every(cell => cell.broken || cell.type === 'bedrock'));
-    if (allBroken) {
-      Bus.emit('layer:cleared', { layer: GameState.get('world.currentLayer') });
-      showDescentShaft();
-    }
-  }
-
-  function showDescentShaft() {
-    const canvas = document.getElementById('grid-canvas');
-    if (!canvas) return;
-    const total = gridSize * (CELL_SIZE + GAP) - GAP;
-
-    const shaft = document.createElement('div');
-    shaft.className = 'cell-descent';
-    shaft.style.cssText = `
-      width: ${total * 0.4}px;
-      height: ${CELL_SIZE * 1.5}px;
-      left:  ${total * 0.3}px;
-      top:   ${(total - CELL_SIZE * 1.5) / 2}px;
-    `;
-    shaft.innerHTML = `
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
-      </svg>
-      <span class="descent-label">Descend</span>
-    `;
-    shaft.addEventListener('click', () => descend());
-    canvas.appendChild(shaft);
-  }
-
-  function descend() {
-    const layer = GameState.get('world.currentLayer') + 1;
-    GameState.set('world.currentLayer', layer);
-    const theme = Zones.themeForLayer(layer);
-    Zones.applyTheme(theme);
-    updateLayerUI();
-    init(layer);
-    render();
-    Bus.emit('layer:entered', { layer });
-  }
-
-  function updateLayerUI() {
-    const layer = GameState.get('world.currentLayer');
-    const el = document.querySelector('#topbar .layer-badge');
-    if (el) el.textContent = `Layer ${layer}`;
-    const zoneEl = document.querySelector('.grid-info-bar .zone-name');
-    if (zoneEl) zoneEl.textContent = Zones.nameForLayer(layer);
-    const progressEl = document.querySelector('.grid-info-bar .layer-progress');
-    if (progressEl) {
-      const total = cells.flat().filter(c => c.type !== 'bedrock').length;
-      const broken = cells.flat().filter(c => c.broken).length;
-      progressEl.textContent = `${broken} / ${total} cells`;
-    }
-  }
-
-  // Update progress text on each break
-  Bus.on('cell:broken', () => updateLayerUI());
-
-  function start(layer) {
-    init(layer);
-    render();
-    updateLayerUI();
-  }
-
-  return { start, render, fitGrid };
-})();
+// Grid state and rendering handled by grid.js (GridRenderer + Grid)
 
 /* ── Combo Meter ────────────────────────────────────────────── */
 const ComboMeter = (() => {
@@ -452,22 +230,51 @@ function updateOverworldLayerSub() {
   if (el) el.textContent = `Layer ${layer} · ${Zones.nameForLayer(layer)}`;
 }
 
+function _updateDepotLock() {
+  const layer  = GameState.get('world.currentLayer');
+  const locEl  = document.getElementById('loc-depot');
+  if (!locEl) return;
+  if (layer >= 3) {
+    locEl.classList.remove('locked');
+    locEl.setAttribute('aria-label', 'The Depot');
+  } else {
+    locEl.classList.add('locked');
+    locEl.setAttribute('aria-label', 'The Depot (locked — reach Layer 3)');
+  }
+}
+
 function initOverworldScreen() {
   // Both the SVG shaft and the card button descend
   document.getElementById('btn-descend')?.addEventListener('click', () => Router.go('grid'));
   document.getElementById('btn-descend-card')?.addEventListener('click', () => Router.go('grid'));
 
   // Workshop / collection shortcuts
-  document.getElementById('btn-goto-collection')?.addEventListener('click', () => Router.go('collection'));
+  document.getElementById('btn-goto-collection')?.addEventListener('click', () => Router.go('items'));
   document.getElementById('btn-goto-skills')?.addEventListener('click', () => Router.go('skills'));
   document.getElementById('btn-goto-upgrade')?.addEventListener('click', () => Router.go('upgrade'));
 
-  // Update layer label whenever overworld is shown
-  Bus.on('router:navigate', ({ screen }) => {
-    if (screen === 'overworld') updateOverworldLayerSub();
+  // Phase 5: The Depot — navigable from overworld map SVG, unlocks at layer 3
+  document.getElementById('loc-depot')?.addEventListener('click', () => {
+    if (GameState.get('world.currentLayer') >= 3) {
+      Router.go('depot');
+    } else {
+      Toast.show('The Depot unlocks at Layer 3.');
+    }
   });
-  Bus.on('layer:entered', updateOverworldLayerSub);
+
+  // Update layer label and depot lock whenever overworld is shown
+  Bus.on('router:navigate', ({ screen }) => {
+    if (screen === 'overworld') {
+      updateOverworldLayerSub();
+      _updateDepotLock();
+    }
+  });
+  Bus.on('layer:entered', () => {
+    updateOverworldLayerSub();
+    _updateDepotLock();
+  });
   updateOverworldLayerSub();
+  _updateDepotLock();
 }
 
 /* ── Tray Navigation ────────────────────────────────────────── */
@@ -490,14 +297,128 @@ function registerScreens() {
   Router.register('grid', {
     onEnter() {
       const layer = GameState.get('world.currentLayer');
-      PlaceholderGrid.start(layer);
+      GridRenderer.start(layer);
     }
   });
 
-  Router.register('collection', {});
+  Router.register('items', {});
   Router.register('skills', {});
   Router.register('upgrade', {});
+  Router.register('depot', {
+    onEnter() { Ailments.renderDepot(); }
+  });
+  Router.register('menu', {
+    onEnter() { MenuScreen.refresh(); }
+  });
 }
+
+/* ── Toast ──────────────────────────────────────────────────── */
+const Toast = (() => {
+  let el = null;
+  let timer = null;
+
+  function getEl() {
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'menu-toast';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  function show(msg, duration = 2200) {
+    const t = getEl();
+    t.textContent = msg;
+    t.classList.add('show');
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  return { show };
+})();
+
+/* ── Menu Screen ────────────────────────────────────────────── */
+const MenuScreen = (() => {
+  const SAVE_KEY = 'deepstrike_save';
+
+  function refresh() {
+    // Update save timestamp label
+    const tsEl = document.getElementById('save-timestamp');
+    if (tsEl) {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (raw) {
+          const data = JSON.parse(raw);
+          const layer = data.world && data.world.currentLayer ? data.world.currentLayer : 1;
+          tsEl.textContent = `Layer ${layer} · Auto-saved`;
+        } else {
+          tsEl.textContent = 'No save found';
+        }
+      } catch (_) {
+        tsEl.textContent = 'Auto-saved';
+      }
+    }
+
+    // Hide confirm panel on re-enter
+    const confirm = document.getElementById('new-game-confirm');
+    if (confirm) confirm.hidden = true;
+  }
+
+  function init() {
+    document.getElementById('btn-save-game')?.addEventListener('click', () => {
+      GameState.save();
+      refresh();
+      Toast.show('Game saved.');
+    });
+
+    document.getElementById('btn-load-game')?.addEventListener('click', () => {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) {
+        Toast.show('No save file found.');
+        return;
+      }
+      GameState.load();
+      // Re-apply zone theme and refresh UI
+      const theme = GameState.get('world.zoneTheme') || 'surface';
+      Zones.applyTheme(theme);
+      const layer = GameState.get('world.currentLayer');
+      const badge = document.querySelector('#topbar .layer-badge');
+      if (badge) badge.textContent = `Layer ${layer}`;
+      const pts = GameState.get('player.upgradePoints');
+      const ptsEl = document.querySelector('#topbar .points-display span');
+      if (ptsEl) ptsEl.textContent = pts;
+      Bus.emit('state:changed', { path: 'load', value: null });
+      refresh();
+      Toast.show('Save loaded.');
+    });
+
+    document.getElementById('btn-new-game')?.addEventListener('click', () => {
+      const confirm = document.getElementById('new-game-confirm');
+      if (confirm) confirm.hidden = false;
+    });
+
+    document.getElementById('btn-new-game-cancel')?.addEventListener('click', () => {
+      const confirm = document.getElementById('new-game-confirm');
+      if (confirm) confirm.hidden = true;
+    });
+
+    document.getElementById('btn-new-game-ok')?.addEventListener('click', () => {
+      GameState.reset();
+      Zones.applyTheme('surface');
+      const badge = document.querySelector('#topbar .layer-badge');
+      if (badge) badge.textContent = 'Layer 1';
+      const ptsEl = document.querySelector('#topbar .points-display span');
+      if (ptsEl) ptsEl.textContent = '0';
+      const confirm = document.getElementById('new-game-confirm');
+      if (confirm) confirm.hidden = true;
+      refresh();
+      Toast.show('New game started. Good luck!');
+      Router.go('overworld');
+    });
+  }
+
+  return { init, refresh };
+})();
 
 /* ── Boot ───────────────────────────────────────────────────── */
 function boot() {
@@ -520,6 +441,11 @@ function boot() {
   initOverworldScreen();
   initTray();
   registerScreens();
+  GridRenderer.init();
+  Tools.init();
+
+  Collection.backfillMilestoneRewards();
+  MenuScreen.init();
 
   Router.go('overworld');
 }
@@ -528,5 +454,5 @@ document.addEventListener('DOMContentLoaded', boot);
 
 // Resize: refit grid when orientation changes
 window.addEventListener('resize', () => {
-  if (Router.current() === 'grid') PlaceholderGrid.fitGrid();
+  if (Router.current() === 'grid') GridRenderer.fitGrid();
 });
