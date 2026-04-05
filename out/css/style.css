@@ -982,3 +982,169 @@ body::before {
 .item-slot[data-rarity="uncommon"]  { border-color: var(--uncommon); }
 .item-slot[data-rarity="rare"]      { border-color: var(--rare); }
 .item-slot[data-rarity="legendary"] { border-color: var(--legendary); }
+
+/* ── Phase 3: Milestones tab ────────────────────────────────── */
+.milestones-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.milestone-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.milestone-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.milestone-group-header .mg-icon {
+  font-size: 1rem;
+}
+
+.milestone-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t-fast);
+}
+
+.milestone-row:last-child {
+  border-bottom: none;
+}
+
+.milestone-row.earned {
+  background: rgba(255,255,255,0.03);
+}
+
+.milestone-icon {
+  font-size: 1.4rem;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+  filter: grayscale(1) opacity(0.3);
+}
+
+.milestone-row.earned .milestone-icon {
+  filter: none;
+}
+
+.milestone-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.milestone-name {
+  font-size: 0.85rem;
+  color: var(--text);
+  font-family: var(--font-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.milestone-row:not(.earned) .milestone-name {
+  color: var(--muted);
+}
+
+.milestone-desc {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.milestone-badge {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.milestone-row.earned .milestone-badge {
+  background: var(--zone-accent);
+  border-color: var(--zone-accent);
+  color: #000;
+}
+
+.milestone-progress-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: 5px;
+}
+
+.milestone-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--zone-accent);
+  transition: width 0.4s ease;
+}
+
+/* Splash for milestone earned */
+.milestone-splash {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-60px);
+  background: var(--surface);
+  border: 1px solid var(--zone-accent);
+  border-radius: var(--r-md);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+  animation: milestone-drop 0.35s ease forwards, milestone-fade 0.4s ease 2.8s forwards;
+  max-width: 300px;
+  pointer-events: none;
+}
+
+.milestone-splash-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.milestone-splash-label {
+  font-size: 0.65rem;
+  color: var(--zone-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 2px;
+}
+
+.milestone-splash-name {
+  font-size: 0.9rem;
+  color: var(--text);
+  font-family: var(--font-display);
+}
+
+@keyframes milestone-drop {
+  from { transform: translateX(-50%) translateY(-60px); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+}
+
+@keyframes milestone-fade {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}

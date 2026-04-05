@@ -204,10 +204,12 @@ const Collection = (() => {
     Items.spawnItemFloat(item, data.r, data.c);
   });
 
-  // ── Bus listener: inventory changed → check set completions ──
+  // ── Bus listener: inventory changed → check set & milestone completions ──
   Bus.on('inventory:changed', function () {
-    // Only run after Items are loaded
-    Items.ready.then(checkAllSets);
+    Items.ready.then(function () {
+      checkAllSets();
+      checkMilestones();
+    });
   });
 
   // ── renderItemsGrid ──────────────────────────────────────────
@@ -255,6 +257,336 @@ const Collection = (() => {
     });
   }
 
+  // ── Milestones ───────────────────────────────────────────────
+  //
+  // A milestone is a goal based on quantity thresholds. There are
+  // several categories:
+  //   • stack     — collect N copies of the same single item
+  //   • type      — collect N total items of the same type (gem/fossil/…)
+  //   • element   — collect N total items of the same element
+  //   • rarity    — collect N total items of the same rarity
+  //   • total     — collect N items overall (unique discoveries)
+  //   • complete  — discover every item of a given rarity
+  //
+  // Each milestone definition:
+  //   { id, group, icon, name, desc, threshold, key, category }
+
+  const _STACK_THRESHOLDS   = [5, 10, 25, 50, 100];
+  const _COUNT_THRESHOLDS   = [5, 10, 25, 50, 100, 250];
+  const _TOTAL_THRESHOLDS   = [1, 5, 10, 25, 50, 100];
+
+  // Build the milestone definitions once items are loaded
+  let _milestoneDefsCache = null;
+
+  function _buildMilestoneDefs() {
+    if (_milestoneDefsCache) return _milestoneDefsCache;
+
+    const defs = [];
+
+    // ── Total unique discoveries ──
+    for (const t of _TOTAL_THRESHOLDS) {
+      defs.push({
+        id:        'total_' + t,
+        group:     'Discoveries',
+        groupIcon: '🗺️',
+        icon:      t >= 50 ? '💎' : t >= 10 ? '🔍' : '📦',
+        name:      'Collector ' + (t >= 100 ? 'III' : t >= 25 ? 'II' : t >= 10 ? 'I' : ''),
+        desc:      'Discover ' + t + ' unique item' + (t === 1 ? '' : 's'),
+        category:  'total',
+        threshold: t
+      });
+    }
+
+    const allItems = Items.getAll();
+
+    // ── Rarity completions — discover every item of a rarity ──
+    const rarityInfo = [
+      { id: 'common',    label: 'Common',    icon: '⬜' },
+      { id: 'uncommon',  label: 'Uncommon',  icon: '🟩' },
+      { id: 'rare',      label: 'Rare',      icon: '🟦' },
+      { id: 'legendary', label: 'Legendary', icon: '🟧' }
+    ];
+    for (const ri of rarityInfo) {
+      const cnt = allItems.filter(i => i.rarity === ri.id).length;
+      if (!cnt) continue;
+      defs.push({
+        id:        'complete_rarity_' + ri.id,
+        group:     'Completionist',
+        groupIcon: '🏆',
+        icon:      ri.icon,
+        name:      'Full ' + ri.label + ' Roster',
+        desc:      'Discover all ' + cnt + ' ' + ri.label + ' items',
+        category:  'complete_rarity',
+        rarity:    ri.id,
+        threshold: cnt
+      });
+    }
+
+    // ── Type accumulation — N total of a type ──
+    const typeInfo = [
+      { id: 'gem',      label: 'Gems',      icon: '💎' },
+      { id: 'fossil',   label: 'Fossils',   icon: '🦕' },
+      { id: 'relic',    label: 'Relics',    icon: '⚱️' },
+      { id: 'mineral',  label: 'Minerals',  icon: '🪨' },
+      { id: 'artifact', label: 'Artifacts', icon: '🏺' }
+    ];
+    for (const ti of typeInfo) {
+      const pool = allItems.filter(i => i.type === ti.id);
+      if (!pool.length) continue;
+      for (const t of _COUNT_THRESHOLDS) {
+        defs.push({
+          id:        'type_' + ti.id + '_' + t,
+          group:     ti.label + ' Hoarder',
+          groupIcon: ti.icon,
+          icon:      ti.icon,
+          name:      ti.label.slice(0, -1) + ' Hoarder ' + _tierLabel(t),
+          desc:      'Collect ' + t + ' total ' + ti.label.toLowerCase(),
+          category:  'type',
+          typeId:    ti.id,
+          threshold: t
+        });
+      }
+    }
+
+    // ── Element accumulation — N total of an element ──
+    const elementInfo = [
+      { id: 'fire',    label: 'Fire',    icon: '🔥' },
+      { id: 'earth',   label: 'Earth',   icon: '🌍' },
+      { id: 'water',   label: 'Water',   icon: '💧' },
+      { id: 'metal',   label: 'Metal',   icon: '⚙️' },
+      { id: 'void',    label: 'Void',    icon: '🌑' },
+      { id: 'crystal', label: 'Crystal', icon: '🔷' }
+    ];
+    for (const ei of elementInfo) {
+      const pool = allItems.filter(i => i.element === ei.id);
+      if (!pool.length) continue;
+      for (const t of _COUNT_THRESHOLDS) {
+        defs.push({
+          id:          'element_' + ei.id + '_' + t,
+          group:       ei.label + ' Attunement',
+          groupIcon:   ei.icon,
+          icon:        ei.icon,
+          name:        ei.label + ' Attuned ' + _tierLabel(t),
+          desc:        'Collect ' + t + ' total ' + ei.label + ' items',
+          category:    'element',
+          elementId:   ei.id,
+          threshold:   t
+        });
+      }
+    }
+
+    // ── Rarity accumulation — N total of a rarity ──
+    for (const ri of rarityInfo) {
+      for (const t of _COUNT_THRESHOLDS) {
+        defs.push({
+          id:        'rarity_' + ri.id + '_' + t,
+          group:     ri.label + ' Hoarder',
+          groupIcon: ri.icon,
+          icon:      ri.icon,
+          name:      ri.label + ' Hoarder ' + _tierLabel(t),
+          desc:      'Collect ' + t + ' total ' + ri.label + ' items',
+          category:  'rarity',
+          rarity:    ri.id,
+          threshold: t
+        });
+      }
+    }
+
+    // ── Per-item stack milestones ──
+    for (const item of allItems) {
+      for (const t of _STACK_THRESHOLDS) {
+        defs.push({
+          id:        'stack_' + item.id + '_' + t,
+          group:     'Stacks: ' + item.name,
+          groupIcon: item.emoji || '✦',
+          icon:      item.emoji || '✦',
+          name:      item.name + ' ×' + t,
+          desc:      'Collect ' + t + ' copies of ' + item.name,
+          category:  'stack',
+          itemId:    item.id,
+          threshold: t
+        });
+      }
+    }
+
+    _milestoneDefsCache = defs;
+    return defs;
+  }
+
+  function _tierLabel(t) {
+    if (t >= 250) return 'IV';
+    if (t >= 100) return 'III';
+    if (t >= 25)  return 'II';
+    if (t >= 10)  return 'I';
+    return '';
+  }
+
+  // Current milestone progress value (for progress bar).
+  // allItems must be pre-fetched by the caller (avoids repeated .slice() copies).
+  function _milestoneProgress(def, invItems, allItems) {
+    if (def.category === 'total') {
+      return Object.keys(invItems).filter(k => (invItems[k] || 0) >= 1).length;
+    }
+    if (def.category === 'complete_rarity') {
+      return allItems.filter(i => i.rarity === def.rarity && (invItems[i.id] || 0) >= 1).length;
+    }
+    if (def.category === 'type') {
+      return allItems
+        .filter(i => i.type === def.typeId)
+        .reduce((sum, i) => sum + (invItems[i.id] || 0), 0);
+    }
+    if (def.category === 'element') {
+      return allItems
+        .filter(i => i.element === def.elementId)
+        .reduce((sum, i) => sum + (invItems[i.id] || 0), 0);
+    }
+    if (def.category === 'rarity') {
+      return allItems
+        .filter(i => i.rarity === def.rarity)
+        .reduce((sum, i) => sum + (invItems[i.id] || 0), 0);
+    }
+    if (def.category === 'stack') {
+      return invItems[def.itemId] || 0;
+    }
+    return 0;
+  }
+
+  // ── Check & notify newly-earned milestones ───────────────────
+  let _notifiedMilestones = {};
+
+  function checkMilestones() {
+    Items.ready.then(function () {
+      const defs     = _buildMilestoneDefs();
+      const invItems = GameState.get('inventory.items') || {};
+      const saved    = GameState.get('inventory.milestones') || {};
+      const allItems = Items.getAll();
+
+      for (const def of defs) {
+        if (saved[def.id]) continue; // already persisted
+        if (_milestoneProgress(def, invItems, allItems) >= def.threshold) {
+          saved[def.id] = true;
+          GameState.set('inventory.milestones', saved);
+          Bus.emit('milestone:earned', { milestoneId: def.id, def });
+          if (!_notifiedMilestones[def.id]) {
+            _notifiedMilestones[def.id] = true;
+            _showMilestoneSplash(def);
+          }
+        }
+      }
+    });
+  }
+
+  function _showMilestoneSplash(def) {
+    const el = document.createElement('div');
+    el.className = 'milestone-splash';
+    el.innerHTML =
+      '<div class="milestone-splash-icon">' + escHtml(def.icon) + '</div>' +
+      '<div>' +
+        '<div class="milestone-splash-label">Milestone Unlocked</div>' +
+        '<div class="milestone-splash-name">' + escHtml(def.name) + '</div>' +
+      '</div>';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3400);
+  }
+
+  // ── renderMilestones ─────────────────────────────────────────
+  function renderMilestones() {
+    const container = document.getElementById('milestones-list');
+    if (!container) return;
+
+    Items.ready.then(function () {
+      const defs     = _buildMilestoneDefs();
+      const invItems = GameState.get('inventory.items') || {};
+      const saved    = GameState.get('inventory.milestones') || {};
+      const allItems = Items.getAll();
+
+      container.innerHTML = '';
+
+      // Group defs
+      const groups = {};
+      for (const def of defs) {
+        const key = def.group;
+        if (!groups[key]) groups[key] = { icon: def.groupIcon, defs: [] };
+        groups[key].defs.push(def);
+      }
+
+      // Filter: show groups that have at least one milestone with progress > 0
+      // OR that have at least one earned milestone. Cache progress to avoid double-compute.
+      for (const [groupName, group] of Object.entries(groups)) {
+        const progCache = {};
+        const visibleDefs = group.defs.filter(def => {
+          if (saved[def.id]) return true;
+          progCache[def.id] = _milestoneProgress(def, invItems, allItems);
+          return progCache[def.id] > 0;
+        });
+
+        if (!visibleDefs.length) continue;
+
+        const section = document.createElement('div');
+        section.className = 'milestone-group';
+
+        const header = document.createElement('div');
+        header.className = 'milestone-group-header';
+        header.innerHTML =
+          '<span class="mg-icon">' + escHtml(group.icon) + '</span>' +
+          escHtml(groupName);
+        section.appendChild(header);
+
+        for (const def of visibleDefs) {
+          const earned  = !!saved[def.id];
+          const prog    = earned ? def.threshold : progCache[def.id];
+          const pct     = Math.min(100, Math.round((prog / def.threshold) * 100));
+
+          const row = document.createElement('div');
+          row.className = 'milestone-row' + (earned ? ' earned' : '');
+
+          const icon = document.createElement('div');
+          icon.className = 'milestone-icon';
+          icon.textContent = def.icon;
+          row.appendChild(icon);
+
+          const body = document.createElement('div');
+          body.className = 'milestone-body';
+
+          const name = document.createElement('div');
+          name.className = 'milestone-name';
+          name.textContent = def.name;
+          body.appendChild(name);
+
+          const desc = document.createElement('div');
+          desc.className = 'milestone-desc';
+          desc.textContent = def.desc;
+          body.appendChild(desc);
+
+          if (!earned) {
+            const bar = document.createElement('div');
+            bar.className = 'milestone-progress-bar';
+            const fill = document.createElement('div');
+            fill.className = 'milestone-progress-fill';
+            fill.style.width = pct + '%';
+            bar.appendChild(fill);
+            body.appendChild(bar);
+          }
+
+          row.appendChild(body);
+
+          const badge = document.createElement('div');
+          badge.className = 'milestone-badge';
+          badge.textContent = earned ? '✓ Done' : prog + ' / ' + def.threshold;
+          row.appendChild(badge);
+
+          section.appendChild(row);
+        }
+
+        container.appendChild(section);
+      }
+
+      if (!container.children.length) {
+        container.innerHTML = '<p style="color:var(--muted);text-align:center;padding:40px 20px;">No milestones in progress yet.<br>Start digging!</p>';
+      }
+    });
+  }
+
   // ── Tab switching ────────────────────────────────────────────
   let _tabsInited = false;
   function initTabs() {
@@ -270,6 +602,7 @@ const Collection = (() => {
         });
         if (tab === 'items') renderItemsGrid();
         if (tab === 'collections') renderCollection();
+        if (tab === 'milestones') renderMilestones();
       });
     });
   }
@@ -292,7 +625,9 @@ const Collection = (() => {
     checkSetCompletion,
     getCompletedSets,
     totalItems,
-    renderCollection
+    renderCollection,
+    renderMilestones,
+    checkMilestones
   };
 
 })();

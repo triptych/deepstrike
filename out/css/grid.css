@@ -157,3 +157,38 @@
   color: var(--muted);
   text-align: right;
 }
+
+/* ── Pickaxe swing animation ────────────────────────────────── */
+/* Pivot = top-center (the grip). Handle hangs straight down.
+   Start tilted back (head to the left), chop forward (CW) so head drives straight down. */
+@keyframes pickaxe-swing {
+  0%   { transform: rotate(-40deg); opacity: 1; }
+  50%  { transform: rotate(12deg);  opacity: 1; }
+  70%  { transform: rotate(6deg);   opacity: 1; }
+  100% { transform: rotate(8deg);   opacity: 0; }
+}
+
+.pickaxe-swing {
+  position: fixed;
+  pointer-events: none;
+  z-index: 80;
+  transform-origin: top center;
+  animation: pickaxe-swing 0.32s cubic-bezier(0.3, 0, 0.1, 1) forwards;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.7));
+}
+
+/* ── Rock chip particles ─────────────────────────────────────── */
+@keyframes particle-fly {
+  0%   { transform: translate(0, 0) scale(1);   opacity: 1; }
+  70%  { opacity: 0.7; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0.2); opacity: 0; }
+}
+
+.dig-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 75;
+  border-radius: 2px;
+  transform-origin: center;
+  animation: particle-fly 0.6s ease-out forwards;
+}

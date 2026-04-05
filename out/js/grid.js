@@ -491,9 +491,74 @@ const GridRenderer = (() => {
 
   // ── Cell interaction ───────────────────────────────────────
 
+  // ── Pickaxe animation ─────────────────────────────────────
+
+  function spawnPickaxe(cx, cy) {
+    const pick = document.createElement('div');
+    pick.className = 'pickaxe-swing';
+    // Grip at top-center (20,2) — this is the pivot point.
+    // Handle goes straight down to (20,36). Head is at the bottom,
+    // horizontal bar centered on handle tip so it looks like a pickaxe viewed front-on.
+    // Element is positioned so top-center aligns above the cell.
+    pick.innerHTML = `<svg viewBox="0 0 40 40" width="40" height="44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- handle straight down from grip -->
+      <line x1="20" y1="2" x2="20" y2="34" stroke="#c8b89a" stroke-width="3" stroke-linecap="round"/>
+      <!-- pick head: horizontal bar at bottom of handle -->
+      <path d="M6,32 L20,34 L34,32 L32,28 L20,30 L8,28 Z" fill="#d0b860" stroke="#a07830" stroke-width="1" stroke-linejoin="round"/>
+      <!-- left spike -->
+      <path d="M6,32 L2,38 L10,36 Z" fill="#e0c87a" stroke="#a07830" stroke-width="0.8" stroke-linejoin="round"/>
+      <!-- right spike -->
+      <path d="M34,32 L38,38 L30,36 Z" fill="#e0c87a" stroke="#a07830" stroke-width="0.8" stroke-linejoin="round"/>
+    </svg>`;
+    // Top-center of the 40px-wide element sits directly above cell centre
+    pick.style.cssText = `left:${cx - 20}px;top:${cy - 52}px;`;
+    document.body.appendChild(pick);
+    setTimeout(() => pick.remove(), 380);
+  }
+
+  // ── Particle effects ───────────────────────────────────────
+
+  const PARTICLE_COLORS = {
+    soil:       ['#3a2e1a', '#4a3a20', '#5a4828', '#2e2410'],
+    rock:       ['#2e2c2a', '#3a3836', '#4a4644', '#222020'],
+    dense_rock: ['#262424', '#363232', '#464040', '#1a1818'],
+    ore_vein:   ['#e8a02a', '#c87a10', '#f0c040', '#8a5808'],
+    crystal:    ['#40c0b8', '#2090a0', '#60d8d0', '#108880'],
+    hollow:     ['#1a1410', '#2a2018', '#221a10', '#120e08'],
+    bedrock:    ['#181818', '#222222', '#101010', '#0e0e0e'],
+  };
+
+  function spawnParticles(cx, cy, cellType, count) {
+    const colors = PARTICLE_COLORS[cellType] ?? PARTICLE_COLORS.rock;
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('div');
+      p.className = 'dig-particle';
+      const angle  = (Math.random() * Math.PI * 2);
+      const speed  = 28 + Math.random() * 52;
+      const tx     = Math.cos(angle) * speed;
+      const ty     = Math.sin(angle) * speed;
+      const size   = 3 + Math.random() * 4;
+      const color  = colors[Math.floor(Math.random() * colors.length)];
+      const delay  = Math.random() * 60;
+      p.style.cssText = `
+        left:${cx}px;top:${cy}px;
+        width:${size}px;height:${size}px;
+        background:${color};
+        --tx:${tx}px;--ty:${ty}px;
+        animation-delay:${delay}ms;
+      `;
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 700 + delay);
+    }
+  }
+
   function tapCell(r, c, el) {
     dismissHpPopup();
     Haptics.tap();
+
+    const rect   = el.getBoundingClientRect();
+    const cx     = rect.left + rect.width  / 2;
+    const cy     = rect.top  + rect.height / 2;
 
     const result = Grid.strike(r, c);
     if (!result) return;
@@ -505,6 +570,15 @@ const GridRenderer = (() => {
       return;
     }
 
+    const cellType = Grid.getCell(r, c)?.type ?? el.dataset.type;
+
+    // Pickaxe swing at cell centre
+    spawnPickaxe(cx, cy);
+
+    // Particles — more on break
+    const isBroken = result.result === 'broken';
+    spawnParticles(cx, cy, cellType, isBroken ? 14 : 5);
+
     // Tap ripple
     const ripple = document.createElement('div');
     ripple.className = 'tap-ripple';
@@ -514,7 +588,7 @@ const GridRenderer = (() => {
 
     updateCellEl(r, c);
 
-    if (result.result === 'broken') {
+    if (isBroken) {
       Haptics.break();
     }
     updateProgressBar();

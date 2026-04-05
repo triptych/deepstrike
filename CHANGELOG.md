@@ -19,6 +19,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.2.1] — 2026-04-05
+
+### Added — Milestones System
+
+- **Milestones tab** added to the Items screen (third tab alongside Items and Collections)
+- Six milestone categories tracked automatically as items are collected:
+  - **Stack** — collect N copies of the same single item (×5, ×10, ×25, ×50, ×100)
+  - **Type hoarder** — accumulate N total items of a type (gem, fossil, relic, mineral, artifact)
+  - **Element attunement** — accumulate N total items of an element (fire, earth, water, metal, void, crystal)
+  - **Rarity hoarder** — accumulate N total items of a rarity tier
+  - **Completionist** — discover every item of a given rarity (common / uncommon / rare / legendary)
+  - **Discoveries** — reach N unique items discovered (1, 5, 10, 25, 50, 100)
+- Milestones panel only shows groups where progress has begun (no spoilers for untouched categories)
+- Progress bar shown for each in-progress milestone; earned milestones show a filled badge
+- Toast notification animates in from the top when a milestone is newly unlocked
+- Earned milestones persisted to `inventory.milestones` in game state
+
+### Changed
+- `inventory:changed` bus listener consolidated — set-completion and milestone checks now run in a single `Items.ready` callback instead of two
+- `_milestoneProgress` accepts a pre-fetched `allItems` array to avoid repeated `.slice()` allocations per milestone def
+- Render pass caches progress values computed during the visibility filter, eliminating redundant recalculations
+
+---
+
 ## [0.2.0] — 2026-04-04
 
 ### Added — Phase 3: Items, Drops & Collection
