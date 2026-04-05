@@ -18,6 +18,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.3.4] — 2026-04-05
+
+### Added
+- Pickaxe swing and rock-chip particles now scale with the grid zoom level — SVG dimensions, position offsets, particle size and travel distance all multiply by the current `scale` value so effects match the zoomed cell size
+
+### Fixed
+- Overworld "Upgrade" action card icon now updates to the current tool's emoji after each purchase — previously the static wrench SVG never changed
+
+---
+
 ## [0.3.3] — 2026-04-05
 
 ### Added
