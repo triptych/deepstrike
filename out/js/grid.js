@@ -21,11 +21,27 @@ const Grid = (() => {
       label: 'Loose Rock',
       breakable: true,
     },
+    dense_rock: {
+      hp: 8,
+      label: 'Dense Rock',
+      breakable: true,   // Phase 4: requires Iron Pick or better
+    },
     ore_vein: {
       hp: 3,
       label: 'Ore Vein',
       breakable: true,
       dropItem: true,
+    },
+    crystal: {
+      hp: 5,
+      label: 'Crystal Node',
+      breakable: true,
+      dropItem: true,
+    },
+    hollow: {
+      hp: 1,
+      label: 'Hollow Pocket',
+      breakable: true,
     },
     bedrock: {
       hp: Infinity,
@@ -101,6 +117,15 @@ const Grid = (() => {
   // ── Public ─────────────────────────────────────────────────
 
   function init(layer) {
+    // Restore persisted state if it matches this layer
+    const saved = GameState.get('grid.cells');
+    const savedLayer = GameState.get('grid.layerSeed');
+    if (saved && saved.length && savedLayer === layer) {
+      gridSize = sizeForLayer(layer);
+      cells = saved;
+      return;
+    }
+
     gridSize   = sizeForLayer(layer);
     const rng  = makeRng(layer * 7919 + 42);
     const dist = distForLayer(layer);
@@ -120,6 +145,9 @@ const Grid = (() => {
         };
       }
     }
+
+    GameState.set('grid.layerSeed', layer);
+    GameState.set('grid.cells', cells);
   }
 
   function getCell(r, c) {
@@ -153,11 +181,13 @@ const Grid = (() => {
 
     if (cell.hp <= 0) {
       cell.broken = true;
+      GameState.set('grid.cells', cells);
       Bus.emit('cell:broken', { r, c, type: cell.type, dropItem: !!def.dropItem });
       checkLayerClear();
       return { result: 'broken', type: cell.type };
     }
 
+    GameState.set('grid.cells', cells);
     return { result: 'struck', stage: cell.stage };
   }
 
@@ -561,6 +591,7 @@ const GridRenderer = (() => {
 
   function descend() {
     const layer = GameState.get('world.currentLayer') + 1;
+    GameState.set('grid.cells', []);
     GameState.set('world.currentLayer', layer);
     const theme = Zones.themeForLayer(layer);
     Zones.applyTheme(theme);

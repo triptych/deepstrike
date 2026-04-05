@@ -44,7 +44,8 @@ const GameState = (() => {
     },
     inventory: {
       items: {},
-      sets: {}
+      sets: {},
+      rewards: {}
     },
     story: {
       chapter: 1,
@@ -235,7 +236,7 @@ function initOverworldScreen() {
   document.getElementById('btn-descend-card')?.addEventListener('click', () => Router.go('grid'));
 
   // Workshop / collection shortcuts
-  document.getElementById('btn-goto-collection')?.addEventListener('click', () => Router.go('collection'));
+  document.getElementById('btn-goto-collection')?.addEventListener('click', () => Router.go('items'));
   document.getElementById('btn-goto-skills')?.addEventListener('click', () => Router.go('skills'));
   document.getElementById('btn-goto-upgrade')?.addEventListener('click', () => Router.go('upgrade'));
 
@@ -271,7 +272,7 @@ function registerScreens() {
     }
   });
 
-  Router.register('collection', {});
+  Router.register('items', {});
   Router.register('skills', {});
   Router.register('upgrade', {});
 }
