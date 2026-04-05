@@ -463,6 +463,50 @@ const Collection = (() => {
     return 0;
   }
 
+  // ── Backfill rewards for milestones earned before reward system ─
+  // Runs once at boot; skipped if inventory.milestonesBackfilled is set.
+  function backfillMilestoneRewards() {
+    Items.ready.then(function () {
+      if (GameState.get('inventory.milestonesBackfilled')) return;
+
+      const saved    = GameState.get('inventory.milestones') || {};
+      const earnedIds = Object.keys(saved).filter(id => saved[id]);
+      if (!earnedIds.length) {
+        GameState.set('inventory.milestonesBackfilled', true);
+        return;
+      }
+
+      const defs = _buildMilestoneDefs();
+      const defById = {};
+      for (const d of defs) defById[d.id] = d;
+
+      let totalUp = 0;
+      let totalSp = 0;
+      for (const id of earnedIds) {
+        const def = defById[id];
+        if (!def || !def.reward) continue;
+        totalUp += def.reward.up || 0;
+        totalSp += def.reward.sp || 0;
+      }
+
+      if (totalUp) {
+        GameState.set('player.upgradePoints',
+          (GameState.get('player.upgradePoints') || 0) + totalUp);
+      }
+      if (totalSp) {
+        GameState.set('player.skillPoints',
+          (GameState.get('player.skillPoints') || 0) + totalSp);
+      }
+
+      GameState.set('inventory.milestonesBackfilled', true);
+
+      if (totalUp || totalSp) {
+        Bus.emit('points:backfilled', { up: totalUp, sp: totalSp });
+        console.log('[Milestones] Backfilled ' + earnedIds.length + ' milestones → +' + totalUp + ' UP, +' + totalSp + ' SP');
+      }
+    });
+  }
+
   // ── Check & notify newly-earned milestones ───────────────────
   let _notifiedMilestones = {};
 
@@ -667,7 +711,8 @@ const Collection = (() => {
     totalItems,
     renderCollection,
     renderMilestones,
-    checkMilestones
+    checkMilestones,
+    backfillMilestoneRewards
   };
 
 })();
