@@ -735,6 +735,11 @@ const GridRenderer = (() => {
     if (badge) badge.textContent = `Layer ${layer}`;
     const zoneEl = document.querySelector('.grid-info-bar .zone-name');
     if (zoneEl) zoneEl.textContent = Zones.nameForLayer(layer);
+
+    // Restore descent shaft if the layer was already cleared before navigating away
+    if (Grid.totalBreakable() > 0 && Grid.brokenCount() >= Grid.totalBreakable()) {
+      showDescentShaft();
+    }
   }
 
   return { init, start, fitGrid };
