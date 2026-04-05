@@ -18,6 +18,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.3.1] — 2026-04-05
+
+### Fixed
+- Pickaxe swing animation was rendering upside-down — SVG content now wrapped in `rotate(180,20,20)` so the head points down into the cell on each tap
+
+---
+
 ## [0.3.0] — 2026-04-05
 
 ### Added — Phase 4: Tools & Damage Formula
