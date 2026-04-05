@@ -18,6 +18,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.3.3] — 2026-04-05
+
+### Added
+- Workshop "next upgrade" card now shows a native `<progress>` bar with current pts vs. cost, so players can see exactly how close they are to affording the next tool tier
+
+### Fixed
+- Pickaxe animation pivot was still at the head after the 180° SVG flip, making the handle strike the cell — `transform-origin` changed to `bottom center` and keyframes shifted to 140°→179° so the head correctly arcs through the cell on impact; element repositioned to `cy-96` to keep the grip anchor at the same screen position
+
+---
+
 ## [0.3.2] — 2026-04-05
 
 ### Fixed
