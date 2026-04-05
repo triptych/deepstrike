@@ -18,6 +18,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.3.2] — 2026-04-05
+
+### Fixed
+- Returning to a cleared grid layer (after visiting collection or another screen) no longer shows an empty grid with no way to descend — `start()` now restores the descent shaft if all breakable cells are already broken
+- Multiple milestones earned in the same pass no longer stack their toast notifications — toasts are queued and shown one at a time, each waiting 3.4 s before the next appears
+
+---
+
 ## [0.3.1] — 2026-04-05
 
 ### Fixed
