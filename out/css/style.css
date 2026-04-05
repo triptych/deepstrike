@@ -71,6 +71,9 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Honour the [hidden] attribute even when author CSS sets display */
+[hidden] { display: none !important; }
+
 html, body {
   height: 100%;
   overflow: hidden;
@@ -1401,6 +1404,7 @@ progress.upgrade-progress-bar::-moz-progress-bar {
   border-radius: var(--r-md);
   cursor: pointer;
   text-align: left;
+  color: inherit;        /* prevent browser default button text color */
   transition: border-color var(--t-fast), background var(--t-fast);
   touch-action: manipulation;
   width: 100%;
@@ -1657,10 +1661,10 @@ progress.upgrade-progress-bar::-moz-progress-bar {
 }
 
 @keyframes miner-bob {
-  0%   { bottom: 16px; }
-  45%  { bottom: 74px; }
-  80%  { bottom: 74px; }
-  100% { bottom: 16px; }
+  0%   { bottom: 16px; transform: translateX(-50%); }
+  45%  { bottom: 74px; transform: translateX(-50%); }
+  80%  { bottom: 74px; transform: translateX(-50%); }
+  100% { bottom: 16px; transform: translateX(-50%); }
 }
 
 .dig-miner-head {
@@ -1767,10 +1771,10 @@ progress.upgrade-progress-bar::-moz-progress-bar {
   100% { opacity: 0;   transform: translate(14px, -24px) rotate(70deg); }
 }
 
-/* Depth label */
+/* Depth label — sits in the surface strip at the top */
 .dig-depth-label {
   position: absolute;
-  bottom: 6px;
+  top: 4px;
   left: 0;
   right: 0;
   text-align: center;
