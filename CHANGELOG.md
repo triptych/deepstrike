@@ -21,6 +21,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.1] — 2026-04-04
+
+### Changed
+- Restructured project: web files moved into `out/` directory
+- JS files (`game.js`, `grid.js`) moved to `out/js/`
+- CSS files (`style.css`, `grid.css`) moved to `out/css/`
+- `index.html`, `item-viewer.html`, `items.json` moved to `out/`
+- Updated asset references in `index.html` to reflect new paths
+
+---
+
 ## [0.1.0] — 2026-04-04
 
 ### Added
