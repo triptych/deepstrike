@@ -303,6 +303,13 @@ function boot() {
   Router.go('overworld');
 }
 
+// Keep topbar upgrade-points display in sync whenever points are granted
+Bus.on('milestone:earned', function (data) {
+  if (!data.reward || !data.reward.up) return;
+  const ptsEl = document.querySelector('#topbar .points-display span');
+  if (ptsEl) ptsEl.textContent = GameState.get('player.upgradePoints') || 0;
+});
+
 document.addEventListener('DOMContentLoaded', boot);
 
 // Resize: refit grid when orientation changes

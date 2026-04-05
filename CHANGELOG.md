@@ -37,6 +37,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Earned milestones persisted to `inventory.milestones` in game state
 
 ### Changed
+- Milestone rewards: each milestone now grants upgrade points (UP) or skill points (SP) on first completion — stack milestones reward UP at low tiers and SP at high tiers; completionist and discovery milestones reward SP
+- Reward amount shown on each milestone row and in the unlock toast
+- Topbar upgrade-point counter updates immediately when a milestone reward is granted
 - `inventory:changed` bus listener consolidated — set-completion and milestone checks now run in a single `Items.ready` callback instead of two
 - `_milestoneProgress` accepts a pre-fetched `allItems` array to avoid repeated `.slice()` allocations per milestone def
 - Render pass caches progress values computed during the visibility filter, eliminating redundant recalculations

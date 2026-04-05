@@ -275,6 +275,12 @@ const Collection = (() => {
   const _COUNT_THRESHOLDS   = [5, 10, 25, 50, 100, 250];
   const _TOTAL_THRESHOLDS   = [1, 5, 10, 25, 50, 100];
 
+  // Reward tables — { up: upgradePoints, sp: skillPoints }
+  const _STACK_REWARDS  = { 5: {up:1,sp:0}, 10: {up:1,sp:0}, 25: {up:2,sp:0}, 50: {up:0,sp:1}, 100: {up:0,sp:2} };
+  const _COUNT_REWARDS  = { 5: {up:1,sp:0}, 10: {up:1,sp:0}, 25: {up:2,sp:0}, 50: {up:2,sp:0}, 100: {up:0,sp:1}, 250: {up:0,sp:2} };
+  const _TOTAL_REWARDS  = { 1: {up:1,sp:0}, 5: {up:1,sp:0}, 10: {up:2,sp:0}, 25: {up:2,sp:0}, 50: {up:0,sp:1}, 100: {up:0,sp:2} };
+  const _COMPLETE_RARITY_REWARDS = { common: {up:3,sp:0}, uncommon: {up:0,sp:1}, rare: {up:0,sp:2}, legendary: {up:0,sp:3} };
+
   // Build the milestone definitions once items are loaded
   let _milestoneDefsCache = null;
 
@@ -293,7 +299,8 @@ const Collection = (() => {
         name:      'Collector ' + (t >= 100 ? 'III' : t >= 25 ? 'II' : t >= 10 ? 'I' : ''),
         desc:      'Discover ' + t + ' unique item' + (t === 1 ? '' : 's'),
         category:  'total',
-        threshold: t
+        threshold: t,
+        reward:    _TOTAL_REWARDS[t]
       });
     }
 
@@ -318,7 +325,8 @@ const Collection = (() => {
         desc:      'Discover all ' + cnt + ' ' + ri.label + ' items',
         category:  'complete_rarity',
         rarity:    ri.id,
-        threshold: cnt
+        threshold: cnt,
+        reward:    _COMPLETE_RARITY_REWARDS[ri.id]
       });
     }
 
@@ -343,7 +351,8 @@ const Collection = (() => {
           desc:      'Collect ' + t + ' total ' + ti.label.toLowerCase(),
           category:  'type',
           typeId:    ti.id,
-          threshold: t
+          threshold: t,
+          reward:    _COUNT_REWARDS[t]
         });
       }
     }
@@ -370,7 +379,8 @@ const Collection = (() => {
           desc:        'Collect ' + t + ' total ' + ei.label + ' items',
           category:    'element',
           elementId:   ei.id,
-          threshold:   t
+          threshold:   t,
+          reward:      _COUNT_REWARDS[t]
         });
       }
     }
@@ -387,7 +397,8 @@ const Collection = (() => {
           desc:      'Collect ' + t + ' total ' + ri.label + ' items',
           category:  'rarity',
           rarity:    ri.id,
-          threshold: t
+          threshold: t,
+          reward:    _COUNT_REWARDS[t]
         });
       }
     }
@@ -404,7 +415,8 @@ const Collection = (() => {
           desc:      'Collect ' + t + ' copies of ' + item.name,
           category:  'stack',
           itemId:    item.id,
-          threshold: t
+          threshold: t,
+          reward:    _STACK_REWARDS[t]
         });
       }
     }
@@ -466,17 +478,32 @@ const Collection = (() => {
         if (_milestoneProgress(def, invItems, allItems) >= def.threshold) {
           saved[def.id] = true;
           GameState.set('inventory.milestones', saved);
-          Bus.emit('milestone:earned', { milestoneId: def.id, def });
+          // Grant reward points
+          const reward = def.reward || { up: 0, sp: 0 };
+          if (reward.up) {
+            GameState.set('player.upgradePoints',
+              (GameState.get('player.upgradePoints') || 0) + reward.up);
+          }
+          if (reward.sp) {
+            GameState.set('player.skillPoints',
+              (GameState.get('player.skillPoints') || 0) + reward.sp);
+          }
+          Bus.emit('milestone:earned', { milestoneId: def.id, def, reward });
           if (!_notifiedMilestones[def.id]) {
             _notifiedMilestones[def.id] = true;
-            _showMilestoneSplash(def);
+            _showMilestoneSplash(def, reward);
           }
         }
       }
     });
   }
 
-  function _showMilestoneSplash(def) {
+  function _showMilestoneSplash(def, reward) {
+    const rewardParts = [];
+    if (reward && reward.up) rewardParts.push('+' + reward.up + ' upgrade pt' + (reward.up > 1 ? 's' : ''));
+    if (reward && reward.sp) rewardParts.push('+' + reward.sp + ' skill pt' + (reward.sp > 1 ? 's' : ''));
+    const rewardStr = rewardParts.join(' · ');
+
     const el = document.createElement('div');
     el.className = 'milestone-splash';
     el.innerHTML =
@@ -484,6 +511,7 @@ const Collection = (() => {
       '<div>' +
         '<div class="milestone-splash-label">Milestone Unlocked</div>' +
         '<div class="milestone-splash-name">' + escHtml(def.name) + '</div>' +
+        (rewardStr ? '<div class="milestone-splash-reward">' + escHtml(rewardStr) + '</div>' : '') +
       '</div>';
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 3400);
@@ -557,6 +585,18 @@ const Collection = (() => {
           desc.className = 'milestone-desc';
           desc.textContent = def.desc;
           body.appendChild(desc);
+
+          // Reward line
+          const r = def.reward;
+          if (r && (r.up || r.sp)) {
+            const rewardParts = [];
+            if (r.up) rewardParts.push('+' + r.up + ' UP');
+            if (r.sp) rewardParts.push('+' + r.sp + ' SP');
+            const rewardEl = document.createElement('div');
+            rewardEl.className = 'milestone-reward-hint' + (earned ? ' earned' : '');
+            rewardEl.textContent = rewardParts.join(' · ');
+            body.appendChild(rewardEl);
+          }
 
           if (!earned) {
             const bar = document.createElement('div');

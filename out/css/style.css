@@ -1139,6 +1139,22 @@ body::before {
   font-family: var(--font-display);
 }
 
+.milestone-splash-reward {
+  font-size: 0.7rem;
+  color: var(--zone-accent);
+  margin-top: 3px;
+}
+
+.milestone-reward-hint {
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.milestone-reward-hint.earned {
+  color: var(--zone-accent);
+}
+
 @keyframes milestone-drop {
   from { transform: translateX(-50%) translateY(-60px); opacity: 0; }
   to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
