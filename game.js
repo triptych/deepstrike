@@ -180,230 +180,7 @@ const Haptics = {
   break() { if (GameState.get('settings.haptics') && navigator.vibrate) navigator.vibrate([12, 4, 8]); }
 };
 
-/* ── Placeholder Grid ───────────────────────────────────────── */
-const PlaceholderGrid = (() => {
-  const CELL_SIZE = 44; // px — meets 44×44 minimum tap target
-  const GAP = 2;
-
-  let gridSize = 8;
-  let cells = [];
-
-  // Very basic cell type distribution for placeholder display
-  const CELL_TYPES = ['soil', 'soil', 'soil', 'rock', 'rock', 'ore_vein'];
-
-  function randomType() {
-    return CELL_TYPES[Math.floor(Math.random() * CELL_TYPES.length)];
-  }
-
-  function init(layer) {
-    if (layer <= 5)       gridSize = 8;
-    else if (layer <= 15) gridSize = 12;
-    else if (layer <= 30) gridSize = 16;
-    else                  gridSize = 20;
-
-    cells = [];
-    for (let r = 0; r < gridSize; r++) {
-      cells[r] = [];
-      for (let c = 0; c < gridSize; c++) {
-        cells[r][c] = {
-          type: randomType(),
-          hp: 4,
-          maxHp: 4,
-          stage: 0,
-          broken: false,
-          hasItem: Math.random() < 0.1
-        };
-      }
-    }
-  }
-
-  function render() {
-    const canvas = document.getElementById('grid-canvas');
-    if (!canvas) return;
-    canvas.innerHTML = '';
-
-    const total = gridSize * (CELL_SIZE + GAP) - GAP;
-    canvas.style.width  = total + 'px';
-    canvas.style.height = total + 'px';
-
-    for (let r = 0; r < gridSize; r++) {
-      for (let c = 0; c < gridSize; c++) {
-        const cell = cells[r][c];
-        const el = document.createElement('div');
-        el.className = 'cell' + (cell.broken ? ' broken' : '') + (cell.hasItem ? ' has-item' : '');
-        el.dataset.type  = cell.type;
-        el.dataset.stage = cell.stage;
-        el.dataset.row   = r;
-        el.dataset.col   = c;
-        el.style.cssText = `
-          width: ${CELL_SIZE}px;
-          height: ${CELL_SIZE}px;
-          left: ${c * (CELL_SIZE + GAP)}px;
-          top:  ${r * (CELL_SIZE + GAP)}px;
-        `;
-
-        // Crack SVG overlay
-        el.innerHTML = `
-          <svg class="crack-svg" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <polyline points="22,0 18,12 26,16 14,28 20,44" fill="none" stroke="rgba(0,0,0,0.7)" stroke-width="1.2"/>
-            <polyline points="44,10 30,18 36,22 24,36" fill="none" stroke="rgba(0,0,0,0.5)" stroke-width="0.8"/>
-          </svg>`;
-
-        el.addEventListener('pointerdown', onCellPointerDown);
-        canvas.appendChild(el);
-      }
-    }
-
-    // Center and fit the grid in viewport
-    fitGrid();
-  }
-
-  function fitGrid() {
-    const viewport = document.getElementById('grid-viewport');
-    const canvas   = document.getElementById('grid-canvas');
-    if (!viewport || !canvas) return;
-
-    const vw = viewport.clientWidth;
-    const vh = viewport.clientHeight;
-    const total = gridSize * (CELL_SIZE + GAP) - GAP;
-
-    // Scale so grid fits with 16px padding on each side
-    const scale = Math.min((vw - 32) / total, (vh - 32) / total, 1);
-    canvas.style.transform = `translate(-50%, -50%) scale(${scale})`;
-  }
-
-  // ── Touch / pointer handling ─────────────────────────────────
-  const PAN_THRESHOLD = 8; // px — below this = tap, above = pan
-
-  let pointerState = null;
-  let panOffset  = { x: 0, y: 0 };
-  let panCurrent = { x: 0, y: 0 };
-  let currentScale = 1;
-
-  function onCellPointerDown(e) {
-    // Only handle primary pointer on the cell directly
-    e.stopPropagation();
-    const el = e.currentTarget;
-    const startX = e.clientX;
-    const startY = e.clientY;
-    let moved = false;
-
-    function onMove(ev) {
-      if (Math.abs(ev.clientX - startX) > PAN_THRESHOLD ||
-          Math.abs(ev.clientY - startY) > PAN_THRESHOLD) {
-        moved = true;
-        el.removeEventListener('pointermove', onMove);
-        el.removeEventListener('pointerup',   onUp);
-      }
-    }
-
-    function onUp() {
-      el.removeEventListener('pointermove', onMove);
-      el.removeEventListener('pointerup',   onUp);
-      if (!moved) strikeCell(+el.dataset.row, +el.dataset.col, el);
-    }
-
-    el.addEventListener('pointermove', onMove);
-    el.addEventListener('pointerup',   onUp);
-  }
-
-  function strikeCell(r, c, el) {
-    const cell = cells[r][c];
-    if (!cell || cell.broken) return;
-
-    Haptics.tap();
-    cell.hp = Math.max(0, cell.hp - 1);
-    cell.stage = 4 - Math.ceil((cell.hp / cell.maxHp) * 4);
-
-    el.dataset.stage = cell.stage;
-
-    // Ripple effect
-    const ripple = document.createElement('div');
-    ripple.className = 'tap-ripple';
-    ripple.style.left = '50%';
-    ripple.style.top  = '50%';
-    el.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 400);
-
-    if (cell.hp <= 0) {
-      cell.broken = true;
-      el.classList.add('broken');
-      el.classList.remove('has-item');
-      Haptics.break();
-      Bus.emit('cell:broken', { r, c, type: cell.type, hadItem: cell.hasItem });
-      checkLayerClear();
-    }
-
-    Bus.emit('cell:struck', { r, c });
-  }
-
-  function checkLayerClear() {
-    const allBroken = cells.every(row => row.every(cell => cell.broken || cell.type === 'bedrock'));
-    if (allBroken) {
-      Bus.emit('layer:cleared', { layer: GameState.get('world.currentLayer') });
-      showDescentShaft();
-    }
-  }
-
-  function showDescentShaft() {
-    const canvas = document.getElementById('grid-canvas');
-    if (!canvas) return;
-    const total = gridSize * (CELL_SIZE + GAP) - GAP;
-
-    const shaft = document.createElement('div');
-    shaft.className = 'cell-descent';
-    shaft.style.cssText = `
-      width: ${total * 0.4}px;
-      height: ${CELL_SIZE * 1.5}px;
-      left:  ${total * 0.3}px;
-      top:   ${(total - CELL_SIZE * 1.5) / 2}px;
-    `;
-    shaft.innerHTML = `
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
-      </svg>
-      <span class="descent-label">Descend</span>
-    `;
-    shaft.addEventListener('click', () => descend());
-    canvas.appendChild(shaft);
-  }
-
-  function descend() {
-    const layer = GameState.get('world.currentLayer') + 1;
-    GameState.set('world.currentLayer', layer);
-    const theme = Zones.themeForLayer(layer);
-    Zones.applyTheme(theme);
-    updateLayerUI();
-    init(layer);
-    render();
-    Bus.emit('layer:entered', { layer });
-  }
-
-  function updateLayerUI() {
-    const layer = GameState.get('world.currentLayer');
-    const el = document.querySelector('#topbar .layer-badge');
-    if (el) el.textContent = `Layer ${layer}`;
-    const zoneEl = document.querySelector('.grid-info-bar .zone-name');
-    if (zoneEl) zoneEl.textContent = Zones.nameForLayer(layer);
-    const progressEl = document.querySelector('.grid-info-bar .layer-progress');
-    if (progressEl) {
-      const total = cells.flat().filter(c => c.type !== 'bedrock').length;
-      const broken = cells.flat().filter(c => c.broken).length;
-      progressEl.textContent = `${broken} / ${total} cells`;
-    }
-  }
-
-  // Update progress text on each break
-  Bus.on('cell:broken', () => updateLayerUI());
-
-  function start(layer) {
-    init(layer);
-    render();
-    updateLayerUI();
-  }
-
-  return { start, render, fitGrid };
-})();
+// Grid state and rendering handled by grid.js (GridRenderer + Grid)
 
 /* ── Combo Meter ────────────────────────────────────────────── */
 const ComboMeter = (() => {
@@ -490,7 +267,7 @@ function registerScreens() {
   Router.register('grid', {
     onEnter() {
       const layer = GameState.get('world.currentLayer');
-      PlaceholderGrid.start(layer);
+      GridRenderer.start(layer);
     }
   });
 
@@ -520,6 +297,7 @@ function boot() {
   initOverworldScreen();
   initTray();
   registerScreens();
+  GridRenderer.init();
 
   Router.go('overworld');
 }
@@ -528,5 +306,5 @@ document.addEventListener('DOMContentLoaded', boot);
 
 // Resize: refit grid when orientation changes
 window.addEventListener('resize', () => {
-  if (Router.current() === 'grid') PlaceholderGrid.fitGrid();
+  if (Router.current() === 'grid') GridRenderer.fitGrid();
 });
