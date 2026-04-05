@@ -862,6 +862,62 @@ body::before {
   cursor: default;
 }
 
+/* ── Workshop: next-tier progress meter ─────────────────────── */
+.upgrade-progress {
+  margin-top: 10px;
+}
+
+.upgrade-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 5px;
+}
+
+.upgrade-progress-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.upgrade-progress-value {
+  font-size: 11px;
+  color: var(--text);
+  font-family: var(--font-display);
+}
+
+progress.upgrade-progress-bar {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border: none;
+  border-radius: 3px;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+/* Track */
+progress.upgrade-progress-bar::-webkit-progress-bar {
+  background: var(--border);
+  border-radius: 3px;
+}
+progress.upgrade-progress-bar {
+  background: var(--border); /* Firefox fallback */
+}
+
+/* Fill */
+progress.upgrade-progress-bar::-webkit-progress-value {
+  background: var(--zone-accent);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+progress.upgrade-progress-bar::-moz-progress-bar {
+  background: var(--zone-accent);
+  border-radius: 3px;
+}
+
 /* "Active" tag inline in stats */
 .tag-equipped {
   display: inline-block;

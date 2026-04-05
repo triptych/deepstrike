@@ -209,6 +209,21 @@ const Tools = (() => {
         unlockHint = '<div class="tool-unlock">Unlocks: ' + names.join(', ') + '</div>';
       }
 
+      // Progress meter (next tier only)
+      var progressMeter = '';
+      if (isNext) {
+        var pct = Math.min(100, Math.round((pts / tool.cost) * 100));
+        progressMeter = '<div class="upgrade-progress">'
+          + '<div class="upgrade-progress-header">'
+          +   '<span class="upgrade-progress-label">Progress</span>'
+          +   '<span class="upgrade-progress-value">' + pts + ' / ' + tool.cost + ' pts</span>'
+          + '</div>'
+          + '<progress class="upgrade-progress-bar" max="' + tool.cost + '" value="' + pts + '">'
+          +   pct + '%'
+          + '</progress>'
+          + '</div>';
+      }
+
       // Action area
       var action = '';
       if (isCurrent) {
@@ -222,8 +237,7 @@ const Tools = (() => {
                  + 'Upgrade &mdash; ' + tool.cost + ' pts'
                  + '</button>';
         } else {
-          var need = tool.cost - pts;
-          action = '<div class="tool-badge need-pts">Need ' + need + ' more pts</div>';
+          action = '<div class="tool-badge need-pts">Need ' + (tool.cost - pts) + ' more pts</div>';
         }
       } else {
         action = '<div class="tool-badge locked-badge">Tier ' + i + '</div>';
@@ -243,6 +257,7 @@ const Tools = (() => {
             + '    <div class="tool-desc">' + tool.desc + '</div>'
             + unlockHint
             + '    <div class="tool-tier-dots">' + dots + '</div>'
+            + progressMeter
             + '  </div>'
             + '  <div class="tool-action">' + action + '</div>'
             + '</div>';
