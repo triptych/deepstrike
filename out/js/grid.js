@@ -502,14 +502,12 @@ const GridRenderer = (() => {
 
   // ── Pickaxe animation ─────────────────────────────────────
 
-  function spawnPickaxe(cx, cy) {
+  function spawnPickaxe(cx, cy, s) {
     const pick = document.createElement('div');
     pick.className = 'pickaxe-swing';
-    // Grip at top-center (20,2) — this is the pivot point.
-    // Handle goes straight down to (20,36). Head is at the bottom,
-    // horizontal bar centered on handle tip so it looks like a pickaxe viewed front-on.
-    // Element is positioned so top-center aligns above the cell.
-    pick.innerHTML = `<svg viewBox="0 0 40 40" width="40" height="44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    const w = Math.round(40 * s);
+    const h = Math.round(44 * s);
+    pick.innerHTML = `<svg viewBox="0 0 40 40" width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <g transform="rotate(180,20,20)">
         <!-- handle straight down from grip -->
         <line x1="20" y1="2" x2="20" y2="34" stroke="#c8b89a" stroke-width="3" stroke-linecap="round"/>
@@ -521,8 +519,8 @@ const GridRenderer = (() => {
         <path d="M34,32 L38,38 L30,36 Z" fill="#e0c87a" stroke="#a07830" stroke-width="0.8" stroke-linejoin="round"/>
       </g>
     </svg>`;
-    // Bottom-center (grip) of the element sits at cy-52; head is 44px above that.
-    pick.style.cssText = `left:${cx - 20}px;top:${cy - 96}px;`;
+    // Bottom-center (grip) of the element sits at cy-52*s; head is 44*s above that.
+    pick.style.cssText = `left:${cx - 20 * s}px;top:${cy - 96 * s}px;`;
     document.body.appendChild(pick);
     setTimeout(() => pick.remove(), 380);
   }
@@ -539,16 +537,16 @@ const GridRenderer = (() => {
     bedrock:    ['#181818', '#222222', '#101010', '#0e0e0e'],
   };
 
-  function spawnParticles(cx, cy, cellType, count) {
+  function spawnParticles(cx, cy, cellType, count, s) {
     const colors = PARTICLE_COLORS[cellType] ?? PARTICLE_COLORS.rock;
     for (let i = 0; i < count; i++) {
       const p = document.createElement('div');
       p.className = 'dig-particle';
       const angle  = (Math.random() * Math.PI * 2);
-      const speed  = 28 + Math.random() * 52;
+      const speed  = (28 + Math.random() * 52) * s;
       const tx     = Math.cos(angle) * speed;
       const ty     = Math.sin(angle) * speed;
-      const size   = 3 + Math.random() * 4;
+      const size   = (3 + Math.random() * 4) * s;
       const color  = colors[Math.floor(Math.random() * colors.length)];
       const delay  = Math.random() * 60;
       p.style.cssText = `
@@ -599,12 +597,12 @@ const GridRenderer = (() => {
 
     const cellType = Grid.getCell(r, c)?.type ?? el.dataset.type;
 
-    // Pickaxe swing at cell centre
-    spawnPickaxe(cx, cy);
+    // Pickaxe swing at cell centre — scaled to current zoom level
+    spawnPickaxe(cx, cy, scale);
 
-    // Particles — more on break
+    // Particles — more on break, scaled to current zoom level
     const isBroken = result.result === 'broken';
-    spawnParticles(cx, cy, cellType, isBroken ? 14 : 5);
+    spawnParticles(cx, cy, cellType, isBroken ? 14 : 5, scale);
 
     // Tap ripple
     const ripple = document.createElement('div');
