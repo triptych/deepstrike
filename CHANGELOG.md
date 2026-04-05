@@ -9,12 +9,34 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Planned
-- Phase 5: Status Ailments
 - Phase 6: Skill Tree
 - Phase 7: Layer Progression & Zones
 - Phase 8: Overworld Map & Narrative
 - Phase 9: Polish & Accessibility
 - Phase 10: Daily Challenges & Economy Tuning
+
+---
+
+## [0.5.0] — 2026-04-05
+
+### Added — Phase 5: Status Ailments
+
+- **ailments.js** — full ailment state machine with apply, tick, cure and antidote logic
+- **6 status ailments** — each cell type can carry one of: Poison, Explosive, Frost, Cursed, Shock, Magma
+  - **Poison Rock** — breaks apply Poisoned debuff (×0.25 damage for 5 taps); cures on Crystal hit
+  - **Explosive Gem** — AOE burst breaks all 8 surrounding cells on destruction; no item drops from AOE cells (item consumption logged)
+  - **Frost Crystal** — first hit freezes the cell; cannot re-tap for 3 further hits
+  - **Cursed Relic** — drains 5 Upgrade Points on break
+  - **Shock Ore** — breaks apply Shocked debuff; next tap deals 0 damage (stun)
+  - **Magma Pocket** — first hit starts a 3-second vent timer; cell pulses red with countdown; failing to break in time costs 10 pts
+- **Status cell visuals** — each status type renders a shimmer glow and icon overlay (`data-status` CSS attribute + `::after` emoji) before the cell is broken
+- **Active ailment icons** in topbar status bar (Poisoned ☠ / Shocked ⚡)
+- **The Depot stub screen** — navigable from the overworld map (unlocks at Layer 3); sells Antidote consumable (20 pts, max 5) that cures all active ailments
+- **Ailment-free clear bonus** — layer clear awards 15 pts (instead of 10) when no ailments triggered; toast notification
+- **Frozen / Stunned visual labels** float up from the tapped cell
+- Status cells gradually introduced: Poison + Frost from Layer 2, Shock + Explosive from Layer 3, Cursed from Layer 4, Magma from Layer 5; Layer 1 is status-free (tutorial)
+- Damage formula (`Tools.damage()`) now applies `Ailments.damageMultiplier()` for poison/shock
+- Chain-explosion guard: AOE-broken explosive cells do not re-trigger further AOE bursts
 
 ---
 

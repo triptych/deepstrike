@@ -230,6 +230,19 @@ function updateOverworldLayerSub() {
   if (el) el.textContent = `Layer ${layer} · ${Zones.nameForLayer(layer)}`;
 }
 
+function _updateDepotLock() {
+  const layer  = GameState.get('world.currentLayer');
+  const locEl  = document.getElementById('loc-depot');
+  if (!locEl) return;
+  if (layer >= 3) {
+    locEl.classList.remove('locked');
+    locEl.setAttribute('aria-label', 'The Depot');
+  } else {
+    locEl.classList.add('locked');
+    locEl.setAttribute('aria-label', 'The Depot (locked — reach Layer 3)');
+  }
+}
+
 function initOverworldScreen() {
   // Both the SVG shaft and the card button descend
   document.getElementById('btn-descend')?.addEventListener('click', () => Router.go('grid'));
@@ -240,12 +253,28 @@ function initOverworldScreen() {
   document.getElementById('btn-goto-skills')?.addEventListener('click', () => Router.go('skills'));
   document.getElementById('btn-goto-upgrade')?.addEventListener('click', () => Router.go('upgrade'));
 
-  // Update layer label whenever overworld is shown
-  Bus.on('router:navigate', ({ screen }) => {
-    if (screen === 'overworld') updateOverworldLayerSub();
+  // Phase 5: The Depot — navigable from overworld map SVG, unlocks at layer 3
+  document.getElementById('loc-depot')?.addEventListener('click', () => {
+    if (GameState.get('world.currentLayer') >= 3) {
+      Router.go('depot');
+    } else {
+      Toast.show('The Depot unlocks at Layer 3.');
+    }
   });
-  Bus.on('layer:entered', updateOverworldLayerSub);
+
+  // Update layer label and depot lock whenever overworld is shown
+  Bus.on('router:navigate', ({ screen }) => {
+    if (screen === 'overworld') {
+      updateOverworldLayerSub();
+      _updateDepotLock();
+    }
+  });
+  Bus.on('layer:entered', () => {
+    updateOverworldLayerSub();
+    _updateDepotLock();
+  });
   updateOverworldLayerSub();
+  _updateDepotLock();
 }
 
 /* ── Tray Navigation ────────────────────────────────────────── */
@@ -275,6 +304,9 @@ function registerScreens() {
   Router.register('items', {});
   Router.register('skills', {});
   Router.register('upgrade', {});
+  Router.register('depot', {
+    onEnter() { Ailments.renderDepot(); }
+  });
   Router.register('menu', {
     onEnter() { MenuScreen.refresh(); }
   });

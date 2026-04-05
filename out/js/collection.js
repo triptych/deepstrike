@@ -198,6 +198,8 @@ const Collection = (() => {
 
   // ── Bus listener: cell:broken → roll drop ────────────────────
   Bus.on('cell:broken', function (data) {
+    // Phase 5: AOE-broken cells don't yield item drops (consumed by explosion)
+    if (data.aoe) return;
     var item = Items.rollDrop(data.type);
     if (!item) return;
     addItem(item.id);

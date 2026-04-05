@@ -105,16 +105,19 @@ const Tools = (() => {
   }
 
   /**
-   * Damage formula: (base + flat) × multiplier × element
-   * flat = 0, multiplier = 1, element = 1 — expanded in Phase 5 & 6.
+   * Damage formula: (base + flat) × multiplier × ailment_multiplier
+   * flat = 0, multiplier = 1 — expanded in Phase 6 for skills.
+   * ailment_multiplier: 0 = stunned, 0.25 = poisoned, 1 = normal.
    */
   function damage(/* cellType */) {
-    const tool = current();
-    const base = tool.baseDmg;
-    const flat = 0;   // Phase 6: skill flat bonus
-    const mult = 1;   // Phase 6: skill multiplier
-    const elem = 1;   // Phase 5: elemental coefficient
-    return Math.max(1, (base + flat) * mult * elem);
+    const tool  = current();
+    const base  = tool.baseDmg;
+    const flat  = 0;   // Phase 6: skill flat bonus
+    const mult  = 1;   // Phase 6: skill multiplier
+    // Phase 5: consume ailment modifier (shock stun sets this to 0)
+    const ailMult = typeof Ailments !== 'undefined' ? Ailments.damageMultiplier() : 1;
+    if (ailMult === 0) return 0;  // Stunned: 0 damage, skip floor
+    return Math.max(1, Math.floor((base + flat) * mult * ailMult));
   }
 
   // ── Point economy ─────────────────────────────────────────
@@ -137,9 +140,15 @@ const Tools = (() => {
     awardPoints(up);
   });
 
-  // Award points on layer clear — 10 base + 5 ailment-free bonus (Phase 5 will gate this)
+  // Award points on layer clear — 10 base + 5 ailment-free bonus (Phase 5)
   Bus.on('layer:cleared', function () {
-    awardPoints(15);
+    const hadAilment = typeof Ailments !== 'undefined' && Ailments.hadAilmentThisLayer();
+    if (hadAilment) {
+      awardPoints(10);
+    } else {
+      awardPoints(15);
+      Toast.show('Ailment-free clear! +5 bonus pts.');
+    }
   });
 
   // ── Purchase ──────────────────────────────────────────────

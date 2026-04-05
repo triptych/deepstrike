@@ -66,11 +66,27 @@ const Grid = (() => {
     ],
   };
 
+  // Phase 5: Status pools unlocked by layer depth
+  // Soil and bedrock never carry status modifiers
+  const NO_STATUS_TYPES = new Set(['soil', 'bedrock', 'hollow']);
+  const STATUS_CHANCE    = 0.12;  // 12% chance per eligible cell
+
+  function _statusPoolForLayer(layer) {
+    if (layer <= 1)  return [];
+    if (layer <= 2)  return ['poison', 'frost'];
+    if (layer <= 3)  return ['poison', 'frost', 'shock', 'explosive'];
+    if (layer <= 4)  return ['poison', 'frost', 'shock', 'explosive', 'cursed'];
+    return ['poison', 'frost', 'shock', 'explosive', 'cursed', 'magma'];
+  }
+
   const CELL_SIZE = 44;
   const GAP       = 2;
 
   let gridSize = 8;
   let cells    = [];
+
+  // Phase 5: Global tap counter — used for frost freeze expiry
+  let _tapCount = 0;
 
   // Seeded RNG — mulberry32
   function makeRng(seed) {
@@ -123,14 +139,18 @@ const Grid = (() => {
     const saved = GameState.get('grid.cells');
     const savedLayer = GameState.get('grid.layerSeed');
     if (saved && saved.length && savedLayer === layer) {
-      gridSize = sizeForLayer(layer);
-      cells = saved;
+      gridSize  = sizeForLayer(layer);
+      cells     = saved;
+      _tapCount = 0;  // Phase 5: reset per-layer frost counter on restore
       return;
     }
 
     gridSize   = sizeForLayer(layer);
     const rng  = makeRng(layer * 7919 + 42);
     const dist = distForLayer(layer);
+    const statusPool = _statusPoolForLayer(layer);
+
+    _tapCount = 0;
 
     cells = [];
     for (let r = 0; r < gridSize; r++) {
@@ -138,12 +158,23 @@ const Grid = (() => {
       for (let c = 0; c < gridSize; c++) {
         const type = weightedPick(rng, dist);
         const def  = DEFS[type];
+
+        // Phase 5: randomly assign a status modifier to eligible cells
+        let status = null;
+        if (statusPool.length && !NO_STATUS_TYPES.has(type)) {
+          if (rng() < STATUS_CHANCE) {
+            status = statusPool[Math.floor(rng() * statusPool.length)];
+          }
+        }
+
         cells[r][c] = {
           type,
-          hp:     def.hp,
-          maxHp:  def.hp,
-          stage:  0,
-          broken: false,
+          hp:            def.hp,
+          maxHp:         def.hp,
+          stage:         0,
+          broken:        false,
+          status,          // null | 'poison' | 'explosive' | 'frost' | 'cursed' | 'shock' | 'magma'
+          frozenUntilTap: 0, // Phase 5: frost freeze expiry tap count
         };
       }
     }
@@ -162,9 +193,16 @@ const Grid = (() => {
 
   /**
    * Strike cell at (r, c).
-   * Returns { result: 'blocked' | 'tooTough' | 'struck' | 'broken', type?, stage? }
-   * Always emits 'cell:struck' (for combo meter); also 'cell:broken' on break.
-   * Phase 4: uses Tools.canStrike() + Tools.damage() from tools.js.
+   * Returns:
+   *   { result: 'blocked' }                — bedrock
+   *   { result: 'tooTough', type }         — needs higher tool tier
+   *   { result: 'frozen' }                 — frost-frozen cell
+   *   { result: 'stunned', stage }         — shock stun (0 damage)
+   *   { result: 'struck',  stage, status } — normal hit
+   *   { result: 'broken',  type, status }  — cell destroyed
+   *
+   * Phase 4: uses Tools.canStrike() + Tools.damage().
+   * Phase 5: checks frost freeze; emits status in events.
    */
   function strike(r, c) {
     const cell = cells[r]?.[c];
@@ -181,23 +219,38 @@ const Grid = (() => {
       return { result: 'tooTough', type: cell.type };
     }
 
-    const damage = Tools.damage(cell.type);
-    cell.hp    = Math.max(0, cell.hp - damage);
+    // Phase 5: frost freeze gate (strict < means exactly 3 taps block re-tapping)
+    if (cell.frozenUntilTap && _tapCount < cell.frozenUntilTap) {
+      return { result: 'frozen' };
+    }
+
+    _tapCount++;
+
+    // Phase 5: apply damage multiplier from active ailments
+    const rawDamage = Tools.damage(cell.type);
+    cell.hp    = Math.max(0, cell.hp - rawDamage);
     cell.stage = calcStage(cell.hp, cell.maxHp);
 
+    if (rawDamage === 0) {
+      // Shock stun: still emit struck (combo/tick), but no damage dealt
+      GameState.set('grid.cells', cells);
+      Bus.emit('cell:struck', { r, c, stage: cell.stage, type: cell.type, status: cell.status, broken: false });
+      return { result: 'stunned', stage: cell.stage };
+    }
+
     // Always fire for combo meter
-    Bus.emit('cell:struck', { r, c, stage: cell.stage });
+    Bus.emit('cell:struck', { r, c, stage: cell.stage, type: cell.type, status: cell.status, broken: false });
 
     if (cell.hp <= 0) {
       cell.broken = true;
       GameState.set('grid.cells', cells);
-      Bus.emit('cell:broken', { r, c, type: cell.type, dropItem: !!def.dropItem });
+      Bus.emit('cell:broken', { r, c, type: cell.type, status: cell.status, dropItem: !!def.dropItem });
       checkLayerClear();
-      return { result: 'broken', type: cell.type };
+      return { result: 'broken', type: cell.type, status: cell.status };
     }
 
     GameState.set('grid.cells', cells);
-    return { result: 'struck', stage: cell.stage };
+    return { result: 'struck', stage: cell.stage, status: cell.status };
   }
 
   function checkLayerClear() {
@@ -207,13 +260,48 @@ const Grid = (() => {
     }
   }
 
+  // Phase 5: Freeze a cell (Frost ailment) ─────────────────────
+  function freezeCell(r, c) {
+    const cell = cells[r]?.[c];
+    if (!cell || cell.broken) return;
+    cell.frozenUntilTap = _tapCount + 3;
+    GameState.set('grid.cells', cells);
+    Bus.emit('cell:frozen', { r, c });
+  }
+
+  // Phase 5: Explosive AOE — break all 8 neighbours ────────────
+  function aoeBurst(r, c) {
+    const broken = [];
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const nr = r + dr;
+        const nc = c + dc;
+        const nb = cells[nr]?.[nc];
+        if (!nb || nb.broken || !DEFS[nb.type]?.breakable) continue;
+        nb.hp     = 0;
+        nb.broken = true;
+        nb.stage  = 4;
+        broken.push({ r: nr, c: nc, type: nb.type, status: nb.status });
+      }
+    }
+    if (broken.length) {
+      GameState.set('grid.cells', cells);
+      for (const b of broken) {
+        // aoe:true suppresses normal item drops (item "consumed" by explosion)
+        Bus.emit('cell:broken', { r: b.r, c: b.c, type: b.type, status: b.status, dropItem: false, aoe: true });
+      }
+      checkLayerClear();
+    }
+  }
+
   function brokenCount()    { return cells.flat().filter(c => c.broken).length; }
   function totalBreakable() { return cells.flat().filter(c => DEFS[c.type]?.breakable).length; }
   function getSize()        { return gridSize; }
   function getCellSize()    { return CELL_SIZE; }
   function getGap()         { return GAP; }
 
-  return { init, getCell, getDef, strike, brokenCount, totalBreakable, getSize, getCellSize, getGap };
+  return { init, getCell, getDef, strike, freezeCell, aoeBurst, brokenCount, totalBreakable, getSize, getCellSize, getGap };
 })();
 
 
@@ -286,6 +374,12 @@ const GridRenderer = (() => {
     el.dataset.row   = r;
     el.dataset.col   = c;
     el.style.cssText = `width:${cs}px;height:${cs}px;left:${c*(cs+gap)}px;top:${r*(cs+gap)}px;`;
+
+    // Phase 5: status modifier
+    if (cell.status && !cell.broken) {
+      el.dataset.status = cell.status;
+    }
+
     if (CRACK_SVG[cell.stage]) {
       el.innerHTML = CRACK_SVG[cell.stage];
     }
@@ -302,7 +396,11 @@ const GridRenderer = (() => {
     if (!el || !cell) return;
 
     el.dataset.stage = cell.stage;
-    if (cell.broken) el.classList.add('broken');
+    if (cell.broken) {
+      el.classList.add('broken');
+      delete el.dataset.status;   // Phase 5: strip status when cell is gone
+      el.classList.remove('frozen');
+    }
 
     // Swap crack overlay
     const old = el.querySelector('.crack-svg');
@@ -571,6 +669,16 @@ const GridRenderer = (() => {
     setTimeout(function () { label.remove(); }, 900);
   }
 
+  function showStatusLabel(cx, cy, text, cssClass) {
+    const label = document.createElement('div');
+    label.className = cssClass;
+    label.textContent = text;
+    label.style.left = cx + 'px';
+    label.style.top  = cy + 'px';
+    document.body.appendChild(label);
+    setTimeout(() => label.remove(), 900);
+  }
+
   function tapCell(r, c, el) {
     dismissHpPopup();
     Haptics.tap();
@@ -592,6 +700,23 @@ const GridRenderer = (() => {
       el.classList.add('shake');
       setTimeout(() => el.classList.remove('shake'), 320);
       showTooToughLabel(cx, cy);
+      return;
+    }
+
+    // Phase 5: frost freeze — can't re-tap for 3 hits
+    if (result.result === 'frozen') {
+      el.classList.add('shake');
+      setTimeout(() => el.classList.remove('shake'), 320);
+      showStatusLabel(cx, cy, 'Frozen!', 'frozen-label');
+      return;
+    }
+
+    // Phase 5: shock stun — tap dealt 0 damage
+    if (result.result === 'stunned') {
+      spawnPickaxe(cx, cy, scale);
+      showStatusLabel(cx, cy, 'Stunned!', 'stunned-label');
+      updateCellEl(r, c);
+      updateProgressBar();
       return;
     }
 
@@ -704,6 +829,63 @@ const GridRenderer = (() => {
     const el = document.querySelector('.grid-info-bar .layer-progress');
     if (el) el.textContent = `${Grid.brokenCount()} / ${Grid.totalBreakable()} cells`;
   }
+
+  // ── Magma vent visual timer ────────────────────────────────────
+
+  const _magmaTimerEls = {}; // key: `${r},${c}` → { timerEl }
+
+  Bus.on('ailment:magma:venting', function (data) {
+    const el = getCellEl(data.r, data.c);
+    if (!el) return;
+    el.classList.add('magma-venting');
+    const timerEl = document.createElement('div');
+    timerEl.className = 'cell-magma-timer';
+    timerEl.textContent = '3';
+    el.appendChild(timerEl);
+    _magmaTimerEls[data.r + ',' + data.c] = timerEl;
+  });
+
+  Bus.on('ailment:magma:tick', function (data) {
+    const timerEl = _magmaTimerEls[data.r + ',' + data.c];
+    if (timerEl) timerEl.textContent = Math.max(0, data.remaining);
+  });
+
+  Bus.on('ailment:magma:vented', function (data) {
+    const key = data.r + ',' + data.c;
+    const el  = getCellEl(data.r, data.c);
+    if (el) el.classList.remove('magma-venting');
+    const timerEl = _magmaTimerEls[key];
+    if (timerEl) timerEl.remove();
+    delete _magmaTimerEls[key];
+  });
+
+  Bus.on('ailment:magma:expired', function (data) {
+    const key = data.r + ',' + data.c;
+    const el  = getCellEl(data.r, data.c);
+    if (el) {
+      el.classList.remove('magma-venting');
+      // Briefly flash red to indicate penalty
+      el.classList.add('magma-expired');
+      setTimeout(() => el && el.classList.remove('magma-expired'), 600);
+    }
+    const timerEl = _magmaTimerEls[key];
+    if (timerEl) timerEl.remove();
+    delete _magmaTimerEls[key];
+  });
+
+  // Phase 5: Frost freeze visual
+  Bus.on('cell:frozen', function (data) {
+    const el = getCellEl(data.r, data.c);
+    if (el) el.classList.add('frozen');
+  });
+
+  // Phase 5: AOE burst — update all affected neighbour cell elements
+  Bus.on('cell:broken', function (data) {
+    if (data.aoe) {
+      updateCellEl(data.r, data.c);
+      updateProgressBar();
+    }
+  });
 
   // ── Bus listeners (registered at module load) ───────────────
 
