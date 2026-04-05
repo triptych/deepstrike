@@ -159,20 +159,21 @@
 }
 
 /* ── Pickaxe swing animation ────────────────────────────────── */
-/* Pivot = top-center (the grip). Handle hangs straight down.
-   Start tilted back (head to the left), chop forward (CW) so head drives straight down. */
+/* Pivot = bottom-center (the grip). Head is at element-top (SVG flipped).
+   Rotate through ~180° so the head arcs from upper-left, drives down,
+   and strikes the cell — equivalent arc to the original design. */
 @keyframes pickaxe-swing {
-  0%   { transform: rotate(-40deg); opacity: 1; }
-  50%  { transform: rotate(12deg);  opacity: 1; }
-  70%  { transform: rotate(6deg);   opacity: 1; }
-  100% { transform: rotate(8deg);   opacity: 0; }
+  0%   { transform: rotate(140deg); opacity: 1; }
+  50%  { transform: rotate(179deg); opacity: 1; }
+  70%  { transform: rotate(174deg); opacity: 1; }
+  100% { transform: rotate(176deg); opacity: 0; }
 }
 
 .pickaxe-swing {
   position: fixed;
   pointer-events: none;
   z-index: 80;
-  transform-origin: top center;
+  transform-origin: bottom center;
   animation: pickaxe-swing 0.32s cubic-bezier(0.3, 0, 0.1, 1) forwards;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.7));
 }

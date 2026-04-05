@@ -521,8 +521,8 @@ const GridRenderer = (() => {
         <path d="M34,32 L38,38 L30,36 Z" fill="#e0c87a" stroke="#a07830" stroke-width="0.8" stroke-linejoin="round"/>
       </g>
     </svg>`;
-    // Top-center of the 40px-wide element sits directly above cell centre
-    pick.style.cssText = `left:${cx - 20}px;top:${cy - 52}px;`;
+    // Bottom-center (grip) of the element sits at cy-52; head is 44px above that.
+    pick.style.cssText = `left:${cx - 20}px;top:${cy - 96}px;`;
     document.body.appendChild(pick);
     setTimeout(() => pick.remove(), 380);
   }
