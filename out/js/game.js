@@ -275,7 +275,118 @@ function registerScreens() {
   Router.register('items', {});
   Router.register('skills', {});
   Router.register('upgrade', {});
+  Router.register('menu', {
+    onEnter() { MenuScreen.refresh(); }
+  });
 }
+
+/* ── Toast ──────────────────────────────────────────────────── */
+const Toast = (() => {
+  let el = null;
+  let timer = null;
+
+  function getEl() {
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'menu-toast';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  function show(msg, duration = 2200) {
+    const t = getEl();
+    t.textContent = msg;
+    t.classList.add('show');
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  return { show };
+})();
+
+/* ── Menu Screen ────────────────────────────────────────────── */
+const MenuScreen = (() => {
+  const SAVE_KEY = 'deepstrike_save';
+
+  function refresh() {
+    // Update save timestamp label
+    const tsEl = document.getElementById('save-timestamp');
+    if (tsEl) {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (raw) {
+          const data = JSON.parse(raw);
+          const layer = data.world && data.world.currentLayer ? data.world.currentLayer : 1;
+          tsEl.textContent = `Layer ${layer} · Auto-saved`;
+        } else {
+          tsEl.textContent = 'No save found';
+        }
+      } catch (_) {
+        tsEl.textContent = 'Auto-saved';
+      }
+    }
+
+    // Hide confirm panel on re-enter
+    const confirm = document.getElementById('new-game-confirm');
+    if (confirm) confirm.hidden = true;
+  }
+
+  function init() {
+    document.getElementById('btn-save-game')?.addEventListener('click', () => {
+      GameState.save();
+      refresh();
+      Toast.show('Game saved.');
+    });
+
+    document.getElementById('btn-load-game')?.addEventListener('click', () => {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) {
+        Toast.show('No save file found.');
+        return;
+      }
+      GameState.load();
+      // Re-apply zone theme and refresh UI
+      const theme = GameState.get('world.zoneTheme') || 'surface';
+      Zones.applyTheme(theme);
+      const layer = GameState.get('world.currentLayer');
+      const badge = document.querySelector('#topbar .layer-badge');
+      if (badge) badge.textContent = `Layer ${layer}`;
+      const pts = GameState.get('player.upgradePoints');
+      const ptsEl = document.querySelector('#topbar .points-display span');
+      if (ptsEl) ptsEl.textContent = pts;
+      Bus.emit('state:changed', { path: 'load', value: null });
+      refresh();
+      Toast.show('Save loaded.');
+    });
+
+    document.getElementById('btn-new-game')?.addEventListener('click', () => {
+      const confirm = document.getElementById('new-game-confirm');
+      if (confirm) confirm.hidden = false;
+    });
+
+    document.getElementById('btn-new-game-cancel')?.addEventListener('click', () => {
+      const confirm = document.getElementById('new-game-confirm');
+      if (confirm) confirm.hidden = true;
+    });
+
+    document.getElementById('btn-new-game-ok')?.addEventListener('click', () => {
+      GameState.reset();
+      Zones.applyTheme('surface');
+      const badge = document.querySelector('#topbar .layer-badge');
+      if (badge) badge.textContent = 'Layer 1';
+      const ptsEl = document.querySelector('#topbar .points-display span');
+      if (ptsEl) ptsEl.textContent = '0';
+      const confirm = document.getElementById('new-game-confirm');
+      if (confirm) confirm.hidden = true;
+      refresh();
+      Toast.show('New game started. Good luck!');
+      Router.go('overworld');
+    });
+  }
+
+  return { init, refresh };
+})();
 
 /* ── Boot ───────────────────────────────────────────────────── */
 function boot() {
@@ -302,6 +413,7 @@ function boot() {
   Tools.init();
 
   Collection.backfillMilestoneRewards();
+  MenuScreen.init();
 
   Router.go('overworld');
 }

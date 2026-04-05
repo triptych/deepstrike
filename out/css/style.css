@@ -1370,3 +1370,436 @@ progress.upgrade-progress-bar::-moz-progress-bar {
   from { opacity: 1; }
   to   { opacity: 0; }
 }
+
+/* ── Menu Screen ────────────────────────────────────────────── */
+#screen-menu {
+  background: var(--bg);
+}
+
+.menu-inner {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 100%;
+}
+
+/* ── Menu Action Buttons ────────────────────────────────────── */
+.menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.menu-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--t-fast), background var(--t-fast);
+  touch-action: manipulation;
+  width: 100%;
+}
+
+.menu-action-btn:active {
+  background: var(--surface3);
+  border-color: var(--zone-accent);
+}
+
+.menu-action-icon {
+  width: 40px;
+  height: 40px;
+  background: var(--surface3);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--zone-accent);
+}
+
+.menu-action-danger .menu-action-icon {
+  color: var(--fire);
+}
+
+.menu-action-danger:active {
+  border-color: var(--fire);
+}
+
+.menu-action-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu-action-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--text);
+}
+
+.menu-action-danger .menu-action-title {
+  color: var(--fire);
+}
+
+.menu-action-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ── New game confirm ────────────────────────────────────────── */
+.menu-confirm {
+  background: var(--surface2);
+  border: 1px solid var(--fire);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.menu-confirm p {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.menu-confirm-btns {
+  display: flex;
+  gap: 10px;
+}
+
+.menu-confirm-cancel,
+.menu-confirm-ok {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font-display);
+  touch-action: manipulation;
+  transition: opacity var(--t-fast);
+}
+
+.menu-confirm-cancel {
+  background: var(--surface3);
+  color: var(--muted);
+  border: 1px solid var(--border2);
+}
+
+.menu-confirm-ok {
+  background: var(--fire);
+  color: #fff;
+}
+
+.menu-confirm-cancel:active,
+.menu-confirm-ok:active {
+  opacity: 0.75;
+}
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.menu-divider {
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── About section ───────────────────────────────────────────── */
+.menu-about {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.menu-about-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.menu-about-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.menu-version {
+  font-size: 11px;
+  color: var(--dim);
+  letter-spacing: 0.06em;
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* ── Toast notification ─────────────────────────────────────── */
+.menu-toast {
+  position: fixed;
+  bottom: calc(var(--tray-h) + var(--safe-bottom) + 12px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface);
+  border: 1px solid var(--zone-accent);
+  border-radius: var(--r-md);
+  padding: 10px 18px;
+  font-size: 13px;
+  color: var(--text);
+  z-index: 200;
+  pointer-events: none;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.menu-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Digging Animation ───────────────────────────────────────── */
+.dig-anim {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  background: #111;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+/* Sky strip at top */
+.dig-surface {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  background: linear-gradient(180deg, #1a2010 0%, #161810 100%);
+  border-bottom: 1px solid #3d4020;
+}
+
+/* Earth strata */
+.dig-strata {
+  position: absolute;
+  top: 22px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.dig-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.dig-layer-1 {
+  top: 0;
+  height: 26px;
+  background: #1e1a12;
+  border-bottom: 1px solid #3a3020;
+}
+
+.dig-layer-2 {
+  top: 26px;
+  height: 24px;
+  background: #1c1c1e;
+  border-bottom: 1px solid #2a2a30;
+}
+
+.dig-layer-3 {
+  top: 50px;
+  height: 22px;
+  background: #161c20;
+  border-bottom: 1px solid #20303a;
+}
+
+.dig-layer-4 {
+  top: 72px;
+  bottom: 0;
+  background: #100e14;
+}
+
+/* Shaft — the dark hole the miner is digging */
+.dig-shaft {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 28px;
+  transform: translateX(-50%);
+  background: #0a080a;
+  border-radius: 4px 4px 0 0;
+  animation: shaft-grow 3.2s ease-in-out infinite;
+}
+
+@keyframes shaft-grow {
+  0%   { height: 8px; }
+  45%  { height: 72px; }
+  80%  { height: 72px; }
+  100% { height: 8px; }
+}
+
+/* Miner figure */
+.dig-miner {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: miner-bob 3.2s ease-in-out infinite;
+}
+
+@keyframes miner-bob {
+  0%   { bottom: 16px; }
+  45%  { bottom: 74px; }
+  80%  { bottom: 74px; }
+  100% { bottom: 16px; }
+}
+
+.dig-miner-head {
+  width: 14px;
+  height: 14px;
+  background: #c8a870;
+  border-radius: 50%;
+  border: 1.5px solid #8a6a40;
+  position: relative;
+}
+
+/* Miner's helmet ridge */
+.dig-miner-head::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -2px;
+  right: -2px;
+  height: 5px;
+  background: #574a38;
+  border-radius: 5px 5px 0 0;
+}
+
+.dig-miner-body {
+  width: 12px;
+  height: 16px;
+  background: #574a38;
+  border-radius: 2px;
+  margin-top: 1px;
+}
+
+/* Arm holding pickaxe */
+.dig-miner-arm {
+  position: absolute;
+  top: 12px;
+  right: -22px;
+  width: 20px;
+  height: 8px;
+  background: #574a38;
+  border-radius: 4px;
+  transform-origin: left center;
+  animation: arm-swing 0.8s ease-in-out infinite;
+}
+
+@keyframes arm-swing {
+  0%   { transform: rotate(-35deg); }
+  50%  { transform: rotate(20deg);  }
+  100% { transform: rotate(-35deg); }
+}
+
+.dig-pickaxe {
+  position: absolute;
+  right: -16px;
+  top: -14px;
+  color: #b0b8c8;
+  transform: rotate(45deg);
+}
+
+/* Rock chip particles — positioned inside .dig-miner-arm so they follow it */
+.dig-chip {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 2px;
+  opacity: 0;
+  /* anchored near the pickaxe head (arm's right end) */
+  top: 0px;
+  right: -18px;
+}
+
+.dig-chip-1 {
+  background: #3d3326;
+  animation: chip-fly-1 0.8s ease-out infinite;
+  animation-delay: 0.05s;
+}
+
+.dig-chip-2 {
+  background: #1c1c1e;
+  animation: chip-fly-2 0.8s ease-out infinite;
+  animation-delay: 0.2s;
+}
+
+.dig-chip-3 {
+  background: #574a38;
+  animation: chip-fly-3 0.8s ease-out infinite;
+  animation-delay: 0.38s;
+}
+
+@keyframes chip-fly-1 {
+  0%   { opacity: 0;   transform: translate(0, 0)       rotate(0deg); }
+  15%  { opacity: 0.9; }
+  100% { opacity: 0;   transform: translate(20px, -16px) rotate(100deg); }
+}
+
+@keyframes chip-fly-2 {
+  0%   { opacity: 0;   transform: translate(0, 0)      rotate(0deg); }
+  15%  { opacity: 0.9; }
+  100% { opacity: 0;   transform: translate(26px, -6px) rotate(130deg); }
+}
+
+@keyframes chip-fly-3 {
+  0%   { opacity: 0;   transform: translate(0, 0)        rotate(0deg); }
+  15%  { opacity: 0.9; }
+  100% { opacity: 0;   transform: translate(14px, -24px) rotate(70deg); }
+}
+
+/* Depth label */
+.dig-depth-label {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+
+.dig-depth-text {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+/* Gem that briefly sparkles in the shaft */
+.dig-gem {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  animation: gem-appear 3.2s ease-in-out infinite;
+  animation-delay: 1.4s;
+  opacity: 0;
+}
+
+@keyframes gem-appear {
+  0%   { opacity: 0; transform: translateX(-50%) scale(0.5); }
+  10%  { opacity: 1; transform: translateX(-50%) scale(1.2); }
+  30%  { opacity: 1; transform: translateX(-50%) scale(1); }
+  50%  { opacity: 0; transform: translateX(-50%) scale(0.8); }
+  100% { opacity: 0; }
+}
