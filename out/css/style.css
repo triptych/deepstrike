@@ -750,6 +750,148 @@ body::before {
   background: var(--zone-accent);
 }
 
+/* ── Phase 4: Tool card states ──────────────────────────────── */
+
+/* Layout addition: tool-action column on the right */
+.tool-card {
+  align-items: flex-start;
+}
+
+.tool-action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+.tool-icon-wrap {
+  width: 48px;
+  height: 48px;
+  background: var(--surface3);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--zone-accent);
+  font-size: 22px;
+}
+
+.tool-icon-char {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.tool-desc {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.tool-unlock {
+  font-size: 11px;
+  color: var(--uncommon);
+  margin-top: 4px;
+}
+
+/* State variants */
+.tool-card.tool-current {
+  border-color: var(--zone-accent);
+  background: color-mix(in srgb, var(--zone-accent) 8%, var(--surface2));
+}
+
+.tool-card.tool-locked {
+  opacity: 0.45;
+}
+
+/* Badges */
+.tool-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  letter-spacing: 0.3px;
+}
+
+.tool-badge.equipped {
+  background: var(--zone-accent);
+  color: #000;
+}
+
+.tool-badge.owned {
+  background: var(--surface3);
+  color: var(--muted);
+  border: 1px solid var(--border2);
+}
+
+.tool-badge.need-pts {
+  background: var(--surface3);
+  color: var(--rare);
+  border: 1px solid var(--border2);
+  font-size: 10px;
+}
+
+.tool-badge.locked-badge {
+  background: var(--surface3);
+  color: var(--border2);
+  border: 1px solid var(--border);
+}
+
+/* Purchase button */
+.btn-upgrade {
+  background: var(--zone-accent);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-family: var(--font-display);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--t-fast);
+}
+
+.btn-upgrade:active {
+  opacity: 0.75;
+}
+
+.btn-upgrade:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* "Active" tag inline in stats */
+.tag-equipped {
+  display: inline-block;
+  background: var(--zone-accent);
+  color: #000;
+  border-radius: 4px;
+  padding: 0 5px;
+  font-size: 10px;
+  vertical-align: middle;
+}
+
+/* ── Phase 4: Too-tough floating label ──────────────────────── */
+@keyframes too-tough-float {
+  0%   { opacity: 1; transform: translate(-50%, -100%); }
+  60%  { opacity: 1; transform: translate(-50%, -200%); }
+  100% { opacity: 0; transform: translate(-50%, -240%); }
+}
+
+.too-tough-label {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  font-size: 12px;
+  font-family: var(--font-display);
+  color: var(--rare);
+  pointer-events: none;
+  z-index: 250;
+  white-space: nowrap;
+  animation: too-tough-float 0.9s ease-out forwards;
+}
+
 /* ── Modal overlay ──────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;

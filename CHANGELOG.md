@@ -9,13 +9,42 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Planned
-- Phase 4: Tools & Damage Formula
 - Phase 5: Status Ailments
 - Phase 6: Skill Tree
 - Phase 7: Layer Progression & Zones
 - Phase 8: Overworld Map & Narrative
 - Phase 9: Polish & Accessibility
 - Phase 10: Daily Challenges & Economy Tuning
+
+---
+
+## [0.3.0] — 2026-04-05
+
+### Added — Phase 4: Tools & Damage Formula
+
+- `tools.js` — tool tier registry and damage formula module
+  - Five tool tiers: Wooden Pick (T1) → Stone Pick (T2) → Iron Pick (T3) → Enchanted Pick (T4) → Void Drill (T5)
+  - Damage formula `(base + flat) × multiplier × element` — flat/multiplier/element are placeholders for Phase 5 & 6 expansion
+  - `Tools.canStrike(cellType)` — returns false if current tier is below the cell's minimum requirement
+  - `Tools.damage()` — computes damage from current tool's base stat
+- **Dense Rock** and **Crystal Node** cell types are now live in the iron zone distribution (layers 6+); both require Iron Pick (T3) or better
+- **Upgrade Points (UP) economy** — points awarded automatically on every cell break:
+  - Soil / Hollow: 1 UP · Rock / Ore Vein: 2–3 UP · Dense Rock: 4 UP · Crystal: 5 UP
+  - Layer clear: 15 UP bonus (10 base + 5 ailment-free; Phase 5 will gate the 5-pt bonus)
+- **Workshop screen** — upgrade screen now dynamically rendered by `tools.js`:
+  - All five tiers shown with name, base damage, description, and tier-dot indicator
+  - Current tier highlighted; next purchasable tier shows cost and "Upgrade" button
+  - Insufficient-points state shows the gap ("Need X more pts")
+  - Future tiers dimmed and locked
+  - Screen re-renders whenever navigated to, keeping points and ownership in sync
+- **"Too Tough!" feedback** — tapping a Dense Rock or Crystal Node below the required tier shows a floating label and cell shake
+- Overworld "Upgrade" action card subtitle updates to reflect the currently equipped tool
+
+### Changed
+- `grid.js` `strike()` no longer accepts a `damage` argument — damage is always sourced from `Tools.damage()` ensuring formula consistency
+- Iron zone cell distribution updated: Dense Rock (18 wt) and Crystal Node (7 wt) added; Soil reduced to 25 wt
+- `game.js` — duplicate `_refreshPointsDisplay` listeners removed; `tools.js` now owns all points-display synchronisation including milestone and backfill events
+- Script load order in `index.html`: `tools.js` inserted between `game.js` and `grid.js` so `Tools` is defined before the grid module runs
 
 ---
 

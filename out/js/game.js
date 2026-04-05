@@ -299,19 +299,12 @@ function boot() {
   initTray();
   registerScreens();
   GridRenderer.init();
+  Tools.init();
 
   Collection.backfillMilestoneRewards();
 
   Router.go('overworld');
 }
-
-// Keep topbar upgrade-points display in sync whenever points are granted
-function _refreshPointsDisplay() {
-  const ptsEl = document.querySelector('#topbar .points-display span');
-  if (ptsEl) ptsEl.textContent = GameState.get('player.upgradePoints') || 0;
-}
-Bus.on('milestone:earned',   _refreshPointsDisplay);
-Bus.on('points:backfilled',  _refreshPointsDisplay);
 
 document.addEventListener('DOMContentLoaded', boot);
 

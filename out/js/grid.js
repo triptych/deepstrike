@@ -57,10 +57,12 @@ const Grid = (() => {
       { type: 'rock',     weight: 30 },
       { type: 'ore_vein', weight: 10 },
     ],
-    iron: [      // layers 6–10
-      { type: 'soil',     weight: 40 },
-      { type: 'rock',     weight: 40 },
-      { type: 'ore_vein', weight: 20 },
+    iron: [      // layers 6–10 — Phase 4: dense_rock + crystal added
+      { type: 'soil',       weight: 25 },
+      { type: 'rock',       weight: 30 },
+      { type: 'ore_vein',   weight: 20 },
+      { type: 'dense_rock', weight: 18 },
+      { type: 'crystal',    weight: 7 },
     ],
   };
 
@@ -159,11 +161,12 @@ const Grid = (() => {
   }
 
   /**
-   * Strike cell at (r, c) with given damage.
-   * Returns { result: 'blocked' | 'struck' | 'broken', type?, stage? }
+   * Strike cell at (r, c).
+   * Returns { result: 'blocked' | 'tooTough' | 'struck' | 'broken', type?, stage? }
    * Always emits 'cell:struck' (for combo meter); also 'cell:broken' on break.
+   * Phase 4: uses Tools.canStrike() + Tools.damage() from tools.js.
    */
-  function strike(r, c, damage = 1) {
+  function strike(r, c) {
     const cell = cells[r]?.[c];
     if (!cell || cell.broken) return null;
 
@@ -173,6 +176,12 @@ const Grid = (() => {
       return { result: 'blocked' };
     }
 
+    // Phase 4: tool tier gate
+    if (!Tools.canStrike(cell.type)) {
+      return { result: 'tooTough', type: cell.type };
+    }
+
+    const damage = Tools.damage(cell.type);
     cell.hp    = Math.max(0, cell.hp - damage);
     cell.stage = calcStage(cell.hp, cell.maxHp);
 
@@ -552,6 +561,16 @@ const GridRenderer = (() => {
     }
   }
 
+  function showTooToughLabel(cx, cy) {
+    const label = document.createElement('div');
+    label.className = 'too-tough-label';
+    label.textContent = 'Too Tough!';
+    label.style.left = cx + 'px';
+    label.style.top  = cy + 'px';
+    document.body.appendChild(label);
+    setTimeout(function () { label.remove(); }, 900);
+  }
+
   function tapCell(r, c, el) {
     dismissHpPopup();
     Haptics.tap();
@@ -564,9 +583,15 @@ const GridRenderer = (() => {
     if (!result) return;
 
     if (result.result === 'blocked') {
-      // Visual feedback: shake + implicit "too tough" (Phase 4 adds text)
       el.classList.add('shake');
       setTimeout(() => el.classList.remove('shake'), 320);
+      return;
+    }
+
+    if (result.result === 'tooTough') {
+      el.classList.add('shake');
+      setTimeout(() => el.classList.remove('shake'), 320);
+      showTooToughLabel(cx, cy);
       return;
     }
 
