@@ -282,11 +282,26 @@ const Tools = (() => {
       });
     });
 
-    // Sync overworld upgrade card subtitle
-    var overworldSub = document.querySelector('#btn-goto-upgrade .card-sub');
-    if (overworldSub) {
+    // Sync overworld upgrade card subtitle + icon
+    var overworldBtn = document.querySelector('#btn-goto-upgrade');
+    if (overworldBtn) {
       var tool = current();
-      overworldSub.textContent = tool.name + ' \u00B7 Tier ' + currentTier;
+      var sub = overworldBtn.querySelector('.card-sub');
+      if (sub) sub.textContent = tool.name + ' \u00B7 Tier ' + currentTier;
+
+      // Replace the static SVG icon with a span showing the current tool emoji.
+      // On first upgrade the element is still an <svg>; after that it's a <span>.
+      var iconEl = overworldBtn.querySelector('.card-icon');
+      if (iconEl) {
+        if (iconEl.tagName.toLowerCase() === 'svg') {
+          var span = document.createElement('span');
+          span.className = 'card-icon';
+          span.setAttribute('aria-hidden', 'true');
+          iconEl.parentNode.replaceChild(span, iconEl);
+          iconEl = span;
+        }
+        iconEl.innerHTML = tool.icon;
+      }
     }
   }
 

@@ -360,6 +360,14 @@ body::before {
   flex-shrink: 0;
 }
 
+/* When card-icon is a span (tool emoji replacing the SVG after upgrade) */
+.action-card span.card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
 .action-card.primary .card-icon {
   width: 36px;
   height: 36px;
