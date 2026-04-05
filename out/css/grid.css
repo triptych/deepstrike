@@ -1,0 +1,194 @@
+/* ============================================================
+   DEEPSTRIKE — grid.css
+   Phase 2: Cell rendering, crack stages, HP popup, animations
+   ============================================================ */
+
+/* ── Cell type appearances ──────────────────────────────────── */
+
+/* Soil — warm earth tone */
+.cell[data-type="soil"] {
+  background: #1e1a12;
+}
+
+/* Rock — cool grey with subtle gradient */
+.cell[data-type="rock"] {
+  background: linear-gradient(135deg, #222020 0%, #1d1b19 100%);
+}
+
+/* Ore Vein — warm highlight with gold radial hint */
+.cell[data-type="ore_vein"] {
+  background: #1e1a10;
+  border-color: rgba(232,160,42,0.2) !important;
+}
+.cell[data-type="ore_vein"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 65% 35%, rgba(232,160,42,0.18) 0%, transparent 60%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Bedrock — hatched pattern, impassable */
+.cell[data-type="bedrock"] {
+  background: repeating-linear-gradient(
+    45deg,
+    #0c0c0c 0px, #0c0c0c 6px,
+    #111111 6px, #111111 12px
+  );
+  border-color: rgba(255,255,255,0.03) !important;
+  cursor: not-allowed;
+}
+
+/* ── Crack stage background tints ───────────────────────────── */
+
+/* Stage 0: intact — type tint only (above) */
+
+/* Stage 1: first crack — slight darkening */
+.cell[data-stage="1"] {
+  filter: brightness(0.96);
+}
+
+/* Stage 2: deepening cracks */
+.cell[data-stage="2"] {
+  filter: brightness(0.92);
+}
+
+/* Stage 3: heavy damage — dust-brown shift */
+.cell[data-stage="3"] {
+  filter: brightness(0.86) sepia(0.1);
+}
+
+/* Stage 4: near break — high contrast, pale dust border */
+.cell[data-stage="4"] {
+  filter: brightness(0.80) contrast(1.15) sepia(0.15);
+  border-color: rgba(255,255,255,0.14) !important;
+}
+
+/* Broken cells override all stage filters */
+.cell.broken {
+  filter: none !important;
+}
+
+/* ── Crack SVG overlay ──────────────────────────────────────── */
+.cell .crack-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ── Cell shake (blocked by bedrock / too-tough) ────────────── */
+@keyframes cell-shake {
+  0%   { transform: translateX(0); }
+  15%  { transform: translateX(-3px); }
+  35%  { transform: translateX(3px); }
+  55%  { transform: translateX(-2px); }
+  75%  { transform: translateX(2px); }
+  100% { transform: translateX(0); }
+}
+
+.cell.shake {
+  animation: cell-shake 0.32s ease-out forwards;
+}
+
+/* ── HP Popup (long-press inspect) ──────────────────────────── */
+.hp-popup {
+  z-index: 60;
+  background: rgba(14,12,10,0.96);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-md);
+  padding: 8px 12px;
+  min-width: 90px;
+  max-width: 130px;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  animation: hp-popup-in 0.14s ease-out;
+}
+
+/* Arrow pointing down at cell */
+.hp-popup::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--border2);
+}
+
+@keyframes hp-popup-in {
+  from { opacity: 0; transform: translate(-50%, -90%) scale(0.88); }
+  to   { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+}
+
+.hp-popup-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--text);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  white-space: nowrap;
+}
+
+.hp-popup-track {
+  height: 5px;
+  background: var(--surface3);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.hp-popup-fill {
+  height: 100%;
+  background: var(--zone-accent);
+  border-radius: 3px;
+  transition: width 0.1s ease;
+  min-width: 2px;
+}
+
+.hp-popup-value {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+}
+
+/* ── Pickaxe swing animation ────────────────────────────────── */
+/* Pivot = top-center (the grip). Handle hangs straight down.
+   Start tilted back (head to the left), chop forward (CW) so head drives straight down. */
+@keyframes pickaxe-swing {
+  0%   { transform: rotate(-40deg); opacity: 1; }
+  50%  { transform: rotate(12deg);  opacity: 1; }
+  70%  { transform: rotate(6deg);   opacity: 1; }
+  100% { transform: rotate(8deg);   opacity: 0; }
+}
+
+.pickaxe-swing {
+  position: fixed;
+  pointer-events: none;
+  z-index: 80;
+  transform-origin: top center;
+  animation: pickaxe-swing 0.32s cubic-bezier(0.3, 0, 0.1, 1) forwards;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.7));
+}
+
+/* ── Rock chip particles ─────────────────────────────────────── */
+@keyframes particle-fly {
+  0%   { transform: translate(0, 0) scale(1);   opacity: 1; }
+  70%  { opacity: 0.7; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0.2); opacity: 0; }
+}
+
+.dig-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 75;
+  border-radius: 2px;
+  transform-origin: center;
+  animation: particle-fly 0.6s ease-out forwards;
+}

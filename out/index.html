@@ -8,7 +8,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0e0c0a">
   <title>DeepStrike</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/grid.css">
 </head>
 <body>
 
@@ -158,7 +159,7 @@
             </div>
           </button>
 
-          <button class="action-card" id="btn-goto-collection" aria-label="Open collection">
+          <button class="action-card" id="btn-goto-collection" aria-label="Open items and collection">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
@@ -209,20 +210,32 @@
       </div>
     </section>
 
-    <!-- COLLECTION ─────────────────────────────────────────── -->
-    <section id="screen-collection" class="screen" role="region" aria-label="Item collection">
-      <div class="collection-inner">
-        <div class="screen-header">
-          <h2>Collection</h2>
-          <p>Track your sets and discovered items</p>
+    <!-- ITEMS ──────────────────────────────────────────────── -->
+    <section id="screen-items" class="screen" role="region" aria-label="Items and collection">
+      <div class="items-screen-inner">
+
+        <!-- Tab bar -->
+        <div class="items-tabs" role="tablist">
+          <button class="items-tab active" data-tab="items" role="tab" aria-selected="true">Items</button>
+          <button class="items-tab" data-tab="collections" role="tab" aria-selected="false">Collections</button>
+          <button class="items-tab" data-tab="milestones" role="tab" aria-selected="false">Milestones</button>
         </div>
-        <div class="collection-placeholder">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-          </svg>
-          <p>Dig your first cell to start collecting items.</p>
-          <p>Set completion unlocks permanent bonuses.</p>
+
+        <!-- Tab: Items grid -->
+        <div id="tab-items" class="items-tab-panel active" role="tabpanel">
+          <div id="items-grid" class="items-flat-grid"></div>
         </div>
+
+        <!-- Tab: Collections / sets -->
+        <div id="tab-collections" class="items-tab-panel" role="tabpanel">
+          <div id="collection-sets" class="collection-sets"></div>
+        </div>
+
+        <!-- Tab: Milestones -->
+        <div id="tab-milestones" class="items-tab-panel" role="tabpanel">
+          <div id="milestones-list" class="milestones-list"></div>
+        </div>
+
       </div>
     </section>
 
@@ -370,7 +383,7 @@
       <span class="tray-label">Dig</span>
     </button>
 
-    <button class="tray-btn" data-screen="collection" aria-label="Item collection">
+    <button class="tray-btn" data-screen="items" aria-label="Items and collection">
       <svg class="tray-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
       </svg>
@@ -396,6 +409,10 @@
 
 </div><!-- /#app -->
 
-<script src="game.js"></script>
+<script src="js/game.js"></script>
+<script src="js/tools.js"></script>
+<script src="js/grid.js"></script>
+<script src="js/items.js"></script>
+<script src="js/collection.js"></script>
 </body>
 </html>
