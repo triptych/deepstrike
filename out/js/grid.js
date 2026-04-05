@@ -510,14 +510,16 @@ const GridRenderer = (() => {
     // horizontal bar centered on handle tip so it looks like a pickaxe viewed front-on.
     // Element is positioned so top-center aligns above the cell.
     pick.innerHTML = `<svg viewBox="0 0 40 40" width="40" height="44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <!-- handle straight down from grip -->
-      <line x1="20" y1="2" x2="20" y2="34" stroke="#c8b89a" stroke-width="3" stroke-linecap="round"/>
-      <!-- pick head: horizontal bar at bottom of handle -->
-      <path d="M6,32 L20,34 L34,32 L32,28 L20,30 L8,28 Z" fill="#d0b860" stroke="#a07830" stroke-width="1" stroke-linejoin="round"/>
-      <!-- left spike -->
-      <path d="M6,32 L2,38 L10,36 Z" fill="#e0c87a" stroke="#a07830" stroke-width="0.8" stroke-linejoin="round"/>
-      <!-- right spike -->
-      <path d="M34,32 L38,38 L30,36 Z" fill="#e0c87a" stroke="#a07830" stroke-width="0.8" stroke-linejoin="round"/>
+      <g transform="rotate(180,20,20)">
+        <!-- handle straight down from grip -->
+        <line x1="20" y1="2" x2="20" y2="34" stroke="#c8b89a" stroke-width="3" stroke-linecap="round"/>
+        <!-- pick head: horizontal bar at bottom of handle -->
+        <path d="M6,32 L20,34 L34,32 L32,28 L20,30 L8,28 Z" fill="#d0b860" stroke="#a07830" stroke-width="1" stroke-linejoin="round"/>
+        <!-- left spike -->
+        <path d="M6,32 L2,38 L10,36 Z" fill="#e0c87a" stroke="#a07830" stroke-width="0.8" stroke-linejoin="round"/>
+        <!-- right spike -->
+        <path d="M34,32 L38,38 L30,36 Z" fill="#e0c87a" stroke="#a07830" stroke-width="0.8" stroke-linejoin="round"/>
+      </g>
     </svg>`;
     // Top-center of the 40px-wide element sits directly above cell centre
     pick.style.cssText = `left:${cx - 20}px;top:${cy - 52}px;`;
