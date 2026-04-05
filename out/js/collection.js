@@ -542,7 +542,25 @@ const Collection = (() => {
     });
   }
 
+  // ── Milestone toast queue ─────────────────────────────────────
+  // Prevents simultaneous toasts from stacking when multiple milestones
+  // fire in the same checkMilestones() pass.
+  const _toastQueue  = [];
+  let   _toastActive = false;
+
   function _showMilestoneSplash(def, reward) {
+    _toastQueue.push({ def: def, reward: reward });
+    if (!_toastActive) _dequeueToast();
+  }
+
+  function _dequeueToast() {
+    if (_toastQueue.length === 0) { _toastActive = false; return; }
+    _toastActive = true;
+    const item = _toastQueue.shift();
+    _renderToast(item.def, item.reward);
+  }
+
+  function _renderToast(def, reward) {
     const rewardParts = [];
     if (reward && reward.up) rewardParts.push('+' + reward.up + ' upgrade pt' + (reward.up > 1 ? 's' : ''));
     if (reward && reward.sp) rewardParts.push('+' + reward.sp + ' skill pt' + (reward.sp > 1 ? 's' : ''));
@@ -558,7 +576,7 @@ const Collection = (() => {
         (rewardStr ? '<div class="milestone-splash-reward">' + escHtml(rewardStr) + '</div>' : '') +
       '</div>';
     document.body.appendChild(el);
-    setTimeout(() => el.remove(), 3400);
+    setTimeout(function () { el.remove(); _dequeueToast(); }, 3400);
   }
 
   // ── renderMilestones ─────────────────────────────────────────
