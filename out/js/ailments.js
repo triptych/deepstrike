@@ -95,7 +95,9 @@ const Ailments = (() => {
       return 0;   // Stun — zero damage this tap
     }
     if (_poison) {
-      return 0.25;  // Severely reduced damage while poisoned
+      // Phase 6: stoneSkin skill can override the poison penalty
+      const override = typeof Skills !== 'undefined' ? Skills.poisonMultiplierOverride() : null;
+      return override !== null ? override : 0.25;
     }
     return 1;
   }

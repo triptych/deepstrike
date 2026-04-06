@@ -206,7 +206,8 @@ const ComboMeter = (() => {
   function increment() {
     count++;
     if (timer) clearTimeout(timer);
-    timer = setTimeout(reset, TIMEOUT_MS);
+    const timeout = typeof Skills !== 'undefined' ? Skills.comboTimeoutMs() : TIMEOUT_MS;
+    timer = setTimeout(reset, timeout);
     update();
     Bus.emit('combo:update', { count, tier: tier(count) });
   }
@@ -445,6 +446,7 @@ function boot() {
   Tools.init();
 
   Collection.backfillMilestoneRewards();
+  Skills.init();
   MenuScreen.init();
 
   Router.go('overworld');

@@ -112,8 +112,8 @@ const Tools = (() => {
   function damage(/* cellType */) {
     const tool  = current();
     const base  = tool.baseDmg;
-    const flat  = 0;   // Phase 6: skill flat bonus
-    const mult  = 1;   // Phase 6: skill multiplier
+    const flat  = typeof Skills !== 'undefined' ? Skills.flatDamageBonus() : 0;
+    const mult  = typeof Skills !== 'undefined' ? Skills.damageMultiplier() : 1;
     // Phase 5: consume ailment modifier (shock stun sets this to 0)
     const ailMult = typeof Ailments !== 'undefined' ? Ailments.damageMultiplier() : 1;
     if (ailMult === 0) return 0;  // Stunned: 0 damage, skip floor
@@ -138,6 +138,10 @@ const Tools = (() => {
   Bus.on('cell:broken', function (data) {
     var up = BREAK_UP[data.type] || 1;
     awardPoints(up);
+    // Phase 6: Prospector skill — extra UP per ore_vein
+    if (typeof Skills !== 'undefined' && Skills.hasProspector() && data.type === 'ore_vein') {
+      awardPoints(1);
+    }
   });
 
   // Award points on layer clear — 10 base + 5 ailment-free bonus (Phase 5)

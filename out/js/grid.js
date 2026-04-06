@@ -380,6 +380,14 @@ const GridRenderer = (() => {
       el.dataset.status = cell.status;
     }
 
+    // Phase 6: loot sense — glow on item-containing cells
+    if (!cell.broken && typeof Skills !== 'undefined' && Skills.hasLootSense()) {
+      const def = Grid.getDef(cell.type);
+      if (def && def.dropItem) {
+        el.dataset.lootSense = 'true';
+      }
+    }
+
     if (CRACK_SVG[cell.stage]) {
       el.innerHTML = CRACK_SVG[cell.stage];
     }
