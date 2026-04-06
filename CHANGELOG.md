@@ -9,11 +9,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Planned
-- Phase 6: Skill Tree
 - Phase 7: Layer Progression & Zones
 - Phase 8: Overworld Map & Narrative
 - Phase 9: Polish & Accessibility
 - Phase 10: Daily Challenges & Economy Tuning
+
+---
+
+## [0.6.0] — 2026-04-06
+
+### Refactor — Web Components
+
+- **index.html** refactored from a 515-line monolithic shell into a 60-line declarative document using custom HTML elements
+- **9 web components** added under `out/js/components/`, each owning its template and preserving all existing IDs and class names:
+  - `<ds-topbar>` — layer badge, combo meter, status icons, upgrade points display
+  - `<ds-tray>` — bottom navigation tray with 6 screen buttons
+  - `<ds-screen-overworld>` — SVG territory map and overworld action cards
+  - `<ds-screen-grid>` — dig grid viewport and info bar
+  - `<ds-screen-items>` — items / collections / milestones tabbed screen
+  - `<ds-screen-skills>` — skill tree screen with SP bar
+  - `<ds-screen-upgrade>` — Workshop tool upgrade screen
+  - `<ds-screen-depot>` — The Depot consumables screen
+  - `<ds-screen-menu>` — save / load / new game menu with about section
+- All components use **Light DOM** (no Shadow DOM) so existing CSS rules and JS `querySelector` calls continue to work without modification
+- Component scripts load in `<head>` (synchronous) so `connectedCallback` fires during HTML parsing before `DOMContentLoaded` — no timing changes to `boot()`
+- Zero changes to any existing JS module (`game.js`, `grid.js`, `tools.js`, `items.js`, `collection.js`, `ailments.js`, `skills.js`) or CSS files
 
 ---
 
