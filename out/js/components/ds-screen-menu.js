@@ -135,7 +135,7 @@ class DsScreenMenu extends HTMLElement {
             Complete item sets, upgrade your tools, and unlock the secrets buried beneath.
           </p>
 
-          <div class="menu-version">v0.5 · Phases 1–5 Complete</div>
+          <div class="menu-version">v0.7 · Phases 1–7 Complete</div>
         </div>
 
       </div>

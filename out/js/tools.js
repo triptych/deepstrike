@@ -68,6 +68,8 @@ const Tools = (() => {
     hollow:     1,
     dense_rock: 3,
     crystal:    3,
+    magma_rock: 4,   // Phase 7: requires Obsidian Drill or better
+    corrupted:  4,   // Phase 7: void zone — same tier requirement
     bedrock:    Infinity,
   };
 
@@ -79,6 +81,8 @@ const Tools = (() => {
     hollow:     1,
     dense_rock: 4,
     crystal:    5,
+    magma_rock: 6,   // Phase 7
+    corrupted:  8,   // Phase 7: rare, high reward
   };
 
   // ── Accessors ─────────────────────────────────────────────

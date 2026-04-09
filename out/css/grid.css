@@ -29,6 +29,65 @@
   border-radius: inherit;
 }
 
+/* Dense Rock — darker grey, heavier feel */
+.cell[data-type="dense_rock"] {
+  background: linear-gradient(135deg, #181616 0%, #131110 100%);
+  border-color: rgba(255,255,255,0.04) !important;
+}
+
+/* Crystal Node — teal shimmer */
+.cell[data-type="crystal"] {
+  background: #0e1a1a;
+  border-color: rgba(64,192,184,0.22) !important;
+}
+.cell[data-type="crystal"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 40% 30%, rgba(64,192,184,0.20) 0%, transparent 65%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Hollow Pocket — dark void */
+.cell[data-type="hollow"] {
+  background: #0a0808;
+  border-color: rgba(255,255,255,0.05) !important;
+}
+
+/* Magma Rock — deep red glow (Phase 7) */
+.cell[data-type="magma_rock"] {
+  background: #1a0a08;
+  border-color: rgba(224,85,64,0.22) !important;
+}
+.cell[data-type="magma_rock"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 70%, rgba(224,85,64,0.22) 0%, transparent 60%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Corrupted Stone — void purple shimmer (Phase 7) */
+.cell[data-type="corrupted"] {
+  background: #100818;
+  border-color: rgba(144,96,208,0.28) !important;
+}
+.cell[data-type="corrupted"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(144,96,208,0.22) 0%, transparent 60%);
+  pointer-events: none;
+  border-radius: inherit;
+  animation: corrupted-pulse 2.4s ease-in-out infinite;
+}
+@keyframes corrupted-pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1.0; }
+}
+
 /* Bedrock — hatched pattern, impassable */
 .cell[data-type="bedrock"] {
   background: repeating-linear-gradient(

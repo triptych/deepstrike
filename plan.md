@@ -213,20 +213,12 @@
 
 ---
 
-## Known Gaps (as of Phase 6)
+## Known Gaps (as of Phase 7)
 
-These are incomplete items discovered during Phase 6 review that don't belong to a specific future phase but must be resolved before the game is shippable.
-
-### Skill hooks not yet wired
-- **Seismic Tap** — skill is defined and unlockable, but the grid effect (break all adjacent cells on every 10th combo tap) is not implemented in `grid.js`
-- **Hoarder** — skill is defined, but duplicate-item conversion (+2 UP instead of a second copy) is not implemented in `collection.js`
-- **Bedrock Sense** — CSS glow exists (`.cell[data-bedrock-sense="true"]`), but `grid.js` never sets the `data-bedrock-sense` attribute on bedrock cells
+These are incomplete items that must be resolved before the game is shippable.
 
 ### Overworld locations not unlockable
-- Mira's Stall, Calla's Office, and Dex's Workshop are permanently locked — no unlock logic is wired to chapter or layer thresholds
-
-### Version label stale
-- The About section in the Menu screen still reads `v0.5 · Phases 1–5 Complete` — should be updated to `v0.6 · Phases 1–6 Complete` as part of the next commit
+- Mira's Stall, Calla's Office, and Dex's Workshop are permanently locked — no unlock logic is wired to chapter or layer thresholds (Phase 8 work)
 
 ---
 
@@ -271,4 +263,4 @@ deepstrike/
 
 ---
 
-*DeepStrike Plan · v0.2 · Phases 1–6 complete. Phases 7–10 + known gaps remaining.*
+*DeepStrike Plan · v0.3 · Phases 1–7 complete. Phases 8–10 + known gaps remaining.*

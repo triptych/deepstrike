@@ -13,7 +13,20 @@ const Collection = (() => {
   // ── addItem ─────────────────────────────────────────────────
   function addItem(itemId) {
     const items = GameState.get('inventory.items') || {};
-    items[itemId] = (items[itemId] || 0) + 1;
+    const prev  = items[itemId] || 0;
+
+    // Known gap fix: Hoarder — duplicate drops convert to +2 UP instead of stacking
+    if (prev >= 1 && typeof Skills !== 'undefined' && Skills.hasHoarder()) {
+      const up = (GameState.get('player.upgradePoints') || 0) + 2;
+      GameState.set('player.upgradePoints', up);
+      const ptsEl = document.querySelector('#topbar .points-display span');
+      if (ptsEl) ptsEl.textContent = up;
+      Bus.emit('inventory:changed', { itemId, count: prev, hoarder: true });
+      Toast.show('Hoarder: duplicate converted to +2 UP');
+      return;
+    }
+
+    items[itemId] = prev + 1;
     GameState.set('inventory.items', items);
     Bus.emit('inventory:changed', { itemId, count: items[itemId] });
   }

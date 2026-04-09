@@ -43,6 +43,18 @@ const Grid = (() => {
       label: 'Hollow Pocket',
       breakable: true,
     },
+    magma_rock: {
+      hp: 10,
+      label: 'Magma Rock',
+      breakable: true,
+    },
+    corrupted: {
+      hp: 12,
+      label: 'Corrupted Stone',
+      breakable: true,
+      dropItem: true,   // Phase 7: legendary-only drops from Void zone
+      voidDrop: true,   // flag: drops only legendary items
+    },
     bedrock: {
       hp: Infinity,
       label: 'Bedrock',
@@ -52,17 +64,38 @@ const Grid = (() => {
 
   // Cell-type distributions per zone depth
   const DISTS = {
-    surface: [   // layers 1–5
+    surface: [   // layers 1–10
       { type: 'soil',     weight: 60 },
       { type: 'rock',     weight: 30 },
       { type: 'ore_vein', weight: 10 },
     ],
-    iron: [      // layers 6–10 — Phase 4: dense_rock + crystal added
+    iron: [      // layers 11–25 — Phase 4: dense_rock + crystal added
       { type: 'soil',       weight: 25 },
       { type: 'rock',       weight: 30 },
       { type: 'ore_vein',   weight: 20 },
       { type: 'dense_rock', weight: 18 },
       { type: 'crystal',    weight: 7 },
+    ],
+    crystal: [   // layers 26–45 — Phase 7
+      { type: 'rock',       weight: 15 },
+      { type: 'dense_rock', weight: 20 },
+      { type: 'ore_vein',   weight: 15 },
+      { type: 'crystal',    weight: 35 },
+      { type: 'hollow',     weight: 15 },
+    ],
+    magma: [     // layers 46–65 — Phase 7
+      { type: 'rock',       weight: 10 },
+      { type: 'dense_rock', weight: 30 },
+      { type: 'magma_rock', weight: 30 },
+      { type: 'ore_vein',   weight: 20 },
+      { type: 'crystal',    weight: 10 },
+    ],
+    void: [      // layers 66+ — Phase 7: corrupted cells, legendary-only drops
+      { type: 'dense_rock',  weight: 20 },
+      { type: 'magma_rock',  weight: 15 },
+      { type: 'crystal',     weight: 20 },
+      { type: 'corrupted',   weight: 35 },
+      { type: 'hollow',      weight: 10 },
     ],
   };
 
@@ -117,7 +150,8 @@ const Grid = (() => {
   }
 
   function distForLayer(layer) {
-    return layer <= 5 ? DISTS.surface : DISTS.iron;
+    const theme = Zones.themeForLayer(layer);
+    return DISTS[theme] ?? DISTS.surface;
   }
 
   /* Crack stage from current HP:
@@ -388,6 +422,11 @@ const GridRenderer = (() => {
       }
     }
 
+    // Known gap fix: Bedrock Sense — glow on bedrock cells when skill unlocked
+    if (cell.type === 'bedrock' && typeof Skills !== 'undefined' && Skills.hasBedrockSense()) {
+      el.dataset.bedrockSense = 'true';
+    }
+
     if (CRACK_SVG[cell.stage]) {
       el.innerHTML = CRACK_SVG[cell.stage];
     }
@@ -640,6 +679,8 @@ const GridRenderer = (() => {
     ore_vein:   ['#e8a02a', '#c87a10', '#f0c040', '#8a5808'],
     crystal:    ['#40c0b8', '#2090a0', '#60d8d0', '#108880'],
     hollow:     ['#1a1410', '#2a2018', '#221a10', '#120e08'],
+    magma_rock: ['#e05540', '#b03020', '#f07040', '#802010'],
+    corrupted:  ['#9060d0', '#6040a0', '#b080f0', '#4020a0'],
     bedrock:    ['#181818', '#222222', '#101010', '#0e0e0e'],
   };
 
@@ -690,6 +731,12 @@ const GridRenderer = (() => {
   function tapCell(r, c, el) {
     dismissHpPopup();
     Haptics.tap();
+
+    // Tag this cell as last-tapped for Seismic Tap (combo:update fires after this)
+    canvas && canvas.querySelectorAll('[data-last-tap]').forEach(function (e) {
+      delete e.dataset.lastTap;
+    });
+    el.dataset.lastTap = '1';
 
     const rect   = el.getBoundingClientRect();
     const cx     = rect.left + rect.width  / 2;
@@ -791,6 +838,29 @@ const GridRenderer = (() => {
     hpPopup = null;
   }
 
+  // ── Zone transition splash ─────────────────────────────────
+
+  function showZoneSplash(zoneName, theme) {
+    const splash = document.createElement('div');
+    splash.className = 'zone-splash';
+    splash.dataset.zone = theme;
+    splash.innerHTML = `
+      <div class="zone-splash-inner">
+        <div class="zone-splash-label">Entering</div>
+        <div class="zone-splash-name">${zoneName}</div>
+      </div>
+    `;
+    document.body.appendChild(splash);
+    // Animate out and remove
+    requestAnimationFrame(() => {
+      splash.classList.add('zone-splash-active');
+      setTimeout(() => {
+        splash.classList.add('zone-splash-exit');
+        setTimeout(() => splash.remove(), 600);
+      }, 1600);
+    });
+  }
+
   // ── Descent shaft ──────────────────────────────────────────
 
   function showDescentShaft() {
@@ -822,12 +892,30 @@ const GridRenderer = (() => {
   }
 
   function descend() {
-    const layer = GameState.get('world.currentLayer') + 1;
+    const prevLayer = GameState.get('world.currentLayer');
+    const layer     = prevLayer + 1;
+
+    // Phase 7: track cleared layers
+    const cleared = GameState.get('world.clearedLayers') || [];
+    if (!cleared.includes(prevLayer)) {
+      cleared.push(prevLayer);
+      GameState.set('world.clearedLayers', cleared);
+    }
+
     GameState.set('grid.cells', []);
     GameState.set('world.currentLayer', layer);
-    const theme = Zones.themeForLayer(layer);
-    Zones.applyTheme(theme);
+
+    const prevTheme = Zones.themeForLayer(prevLayer);
+    const newTheme  = Zones.themeForLayer(layer);
+    const zoneChanged = newTheme !== prevTheme;
+
+    Zones.applyTheme(newTheme);
     Bus.emit('layer:entered', { layer });
+
+    if (zoneChanged) {
+      showZoneSplash(Zones.nameForLayer(layer), newTheme);
+    }
+
     start(layer);
   }
 
@@ -893,6 +981,32 @@ const GridRenderer = (() => {
       updateCellEl(data.r, data.c);
       updateProgressBar();
     }
+  });
+
+  // Phase 7 / Known gap: Seismic Tap — every 10th combo tap breaks adjacent cells
+  Bus.on('combo:update', function (data) {
+    if (!data || data.count <= 0) return;
+    if (data.count % 10 !== 0) return;
+    if (typeof Skills === 'undefined' || !Skills.hasSeismicTap()) return;
+
+    // Find the last-struck cell from the most recent tapCell call
+    const lastEl = canvas && canvas.querySelector('.cell[data-last-tap]');
+    if (!lastEl) return;
+    const r = +lastEl.dataset.row;
+    const c = +lastEl.dataset.col;
+    Grid.aoeBurst(r, c);
+    // Visual: flash all neighbour cells
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const nb = getCellEl(r + dr, c + dc);
+        if (nb) {
+          nb.classList.add('seismic-burst');
+          setTimeout(() => nb && nb.classList.remove('seismic-burst'), 400);
+        }
+      }
+    }
+    Toast.show('Seismic Tap!');
   });
 
   // ── Bus listeners (registered at module load) ───────────────

@@ -82,8 +82,22 @@ const Items = (() => {
       return weightedPick(_allItems);
     }
 
-    // soil / rock — probabilistic
-    const chances = CELL_DROP[cellType];
+    // Phase 7: corrupted cells drop legendary-only (guaranteed)
+    if (cellType === 'corrupted') {
+      const legendaryPool = _allItems.filter(i => i.rarity === 'legendary');
+      if (legendaryPool.length) {
+        return legendaryPool[Math.floor(Math.random() * legendaryPool.length)];
+      }
+      return weightedPick(_allItems); // fallback if no legendaries defined
+    }
+
+    // crystal — treat like ore_vein (guaranteed, full rarity pool)
+    if (cellType === 'crystal') {
+      return weightedPick(_allItems);
+    }
+
+    // soil / rock / magma_rock — probabilistic
+    const chances = CELL_DROP[cellType] || CELL_DROP['rock'];
     if (!chances) return null;
 
     const r = Math.random();
